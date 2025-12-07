@@ -16,6 +16,8 @@ const App: React.FC = () => {
     const [retraining, setRetraining] = useState<boolean>(false);
     const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
     const [uploading, setUploading] = useState<boolean>(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editValue, setEditValue] = useState<string>('');
 
     // Initial Data Load
     useEffect(() => {
@@ -35,6 +37,20 @@ const App: React.FC = () => {
             setFeatureNames(data.feature_names);
         } catch (error) {
             console.error("Error fetching sample:", error);
+        }
+    };
+
+    const fetchRandomData = async () => {
+        try {
+            const res = await fetch(`${API_URL}/random`);
+            const data = await res.json();
+            setFeatures(data.features);
+            setFeatureNames(data.feature_names);
+        } catch (error) {
+            console.error("Error fetching random data:", error);
+            // Fallback to generating client-side random data
+            const newFeatures = features.map(() => Math.random() * 100000 - 50000);
+            setFeatures(newFeatures);
         }
     };
 
@@ -135,6 +151,33 @@ const App: React.FC = () => {
         }
     };
 
+    const handleFeatureChange = (index: number, value: string) => {
+        const newFeatures = [...features];
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+            newFeatures[index] = numValue;
+        } else {
+            newFeatures[index] = 0;
+        }
+        setFeatures(newFeatures);
+    };
+
+    const startEditing = (index: number, value: number) => {
+        setEditingIndex(index);
+        setEditValue(value.toString());
+    };
+
+    const saveEdit = (index: number) => {
+        if (editingIndex === index) {
+            handleFeatureChange(index, editValue);
+            setEditingIndex(null);
+        }
+    };
+
+    const cancelEdit = () => {
+        setEditingIndex(null);
+    };
+
     // Helper for color coding alerts
     const getLevelColor = (level: string) => {
         switch (level) {
@@ -221,18 +264,71 @@ const App: React.FC = () => {
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-slate-800">Traffic Analyzer</h2>
-                            <button 
-                                onClick={fetchSampleData}
-                                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                            >
-                                ↺ Reset to Sample Data
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={fetchSampleData}
+                                    className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                    ↺ Reset to Sample Data
+                                </button>
+                                <button 
+                                    onClick={fetchRandomData}
+                                    className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                    🎲 Generate Random Data
+                                </button>
+                            </div>
                         </div>
                         
-                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6 max-h-48 overflow-y-auto">
+                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6 max-h-96 overflow-y-auto">
                             <p className="text-xs text-slate-500 mb-2 font-mono">Raw Feature Vector ({features.length} features)</p>
-                            <div className="flex flex-wrap gap-1 text-xs font-mono text-slate-600 break-all">
-                                {features.join(', ')}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                {features.map((value, index) => (
+                                    <div key={index} className="flex items-center text-xs">
+                                        <span className="text-slate-500 w-16 truncate mr-1" title={featureNames[index] || `Feature ${index}`}>{
+                                            featureNames[index] ? 
+                                            featureNames[index].length > 10 ? 
+                                            featureNames[index].substring(0, 10) + '...' : 
+                                            featureNames[index] : 
+                                            `Feat ${index}`
+                                        }</span>
+                                        {editingIndex === index ? (
+                                            <div className="flex">
+                                                <input
+                                                    type="number"
+                                                    value={editValue}
+                                                    onChange={(e) => setEditValue(e.target.value)}
+                                                    className="w-20 px-1 py-0.5 text-xs border rounded"
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') saveEdit(index);
+                                                        if (e.key === 'Escape') cancelEdit();
+                                                    }}
+                                                />
+                                                <button 
+                                                    onClick={() => saveEdit(index)}
+                                                    className="ml-1 px-1 bg-green-500 text-white rounded"
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button 
+                                                    onClick={cancelEdit}
+                                                    className="ml-1 px-1 bg-red-500 text-white rounded"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span 
+                                                className="font-mono w-24 truncate cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                                onClick={() => startEditing(index, value)}
+                                                title={value.toString()}
+                                            >
+                                                {value.toFixed(2)}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
