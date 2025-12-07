@@ -14,6 +14,8 @@ const App: React.FC = () => {
     const [alerts, setAlerts] = useState<AlertLog[]>([]);
     const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
     const [retraining, setRetraining] = useState<boolean>(false);
+    const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+    const [uploading, setUploading] = useState<boolean>(false);
 
     // Initial Data Load
     useEffect(() => {
@@ -92,6 +94,47 @@ const App: React.FC = () => {
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSelectedFiles(e.target.files);
+    };
+
+    const handleUploadAndRetrain = async () => {
+        if (!selectedFiles || selectedFiles.length === 0) {
+            alert("Please select at least one CSV file to upload.");
+            return;
+        }
+
+        const formData = new FormData();
+        for (let i = 0; i < selectedFiles.length; i++) {
+            formData.append('files', selectedFiles[i]);
+        }
+
+        setUploading(true);
+        try {
+            const res = await fetch(`${API_URL}/upload-and-retrain`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                alert("Model retrained successfully with uploaded data!");
+                // Refresh metrics and sample data
+                fetchMetrics();
+                fetchSampleData();
+            } else {
+                alert(`Retraining failed: ${data.message}`);
+            }
+        } catch (error) {
+            alert("Upload and retraining failed. Check console for details.");
+            console.error(error);
+        } finally {
+            setUploading(false);
+            setSelectedFiles(null);
+        }
+    };
+
     // Helper for color coding alerts
     const getLevelColor = (level: string) => {
         switch (level) {
@@ -136,6 +179,44 @@ const App: React.FC = () => {
                 {/* Left Column: Input & Prediction */}
                 <div className="lg:col-span-8 space-y-8">
                     
+                    {/* File Upload Panel */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <h2 className="text-xl font-bold text-slate-800 mb-4">Model Retraining</h2>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Upload CSV Files for Retraining
+                            </label>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                multiple
+                                onChange={handleFileChange}
+                                className="block w-full text-sm text-slate-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-lg file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-indigo-50 file:text-indigo-700
+                                    hover:file:bg-indigo-100"
+                            />
+                            {selectedFiles && (
+                                <p className="mt-2 text-sm text-slate-500">
+                                    Selected {selectedFiles.length} file(s)
+                                </p>
+                            )}
+                        </div>
+                        <button
+                            onClick={handleUploadAndRetrain}
+                            disabled={uploading || !selectedFiles || selectedFiles.length === 0}
+                            className={`w-full py-2 rounded-lg font-medium transition-colors ${
+                                uploading || !selectedFiles || selectedFiles.length === 0
+                                    ? 'bg-gray-300 cursor-not-allowed'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                            }`}
+                        >
+                            {uploading ? 'Uploading and Retraining...' : 'Upload and Retrain Model'}
+                        </button>
+                    </div>
+
                     {/* Prediction Panel */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <div className="flex justify-between items-center mb-6">
