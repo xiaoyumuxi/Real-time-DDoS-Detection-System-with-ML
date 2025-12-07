@@ -13,7 +13,7 @@ try:
     FEATURE_COLUMNS = joblib.load('ddos_feature_columns.joblib')
     print("模型组件加载成功，准备就绪。")
 except FileNotFoundError:
-    print("错误：无法加载模型文件。请确保已运行 'train_and_save.py' 脚本。")
+    print("错误：无法加载模型文件。请确保已运行 'trainning.py' 脚本。")
     exit()
 
 
@@ -63,13 +63,24 @@ def get_prediction(raw_input_data: list) -> dict:
 
     # 找出最高概率和对应标签
     max_proba = np.max(prediction_proba)
+    
+    # Determine threat level
+    if prediction_label.upper() == 'BENIGN':
+        threat_level = 'None'
+    elif max_proba > 0.9:
+        threat_level = 'High'
+    elif max_proba > 0.7:
+        threat_level = 'Medium'
+    else:
+        threat_level = 'Low'
 
     # 6. 返回结果
     return {
         "status": "success",
         "predicted_label": prediction_label,
         "confidence": float(max_proba),
-        "encoded_value": int(prediction_encoded)
+        "encoded_value": int(prediction_encoded),
+        "threat_level": threat_level
     }
 
 

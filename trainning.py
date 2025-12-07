@@ -4,6 +4,7 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # ----------------------------------------------------------------------
 # 设定参数
@@ -56,12 +57,30 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_train.columns)
 
+# Also scale test set for evaluation
+X_test_scaled = scaler.transform(X_test)
+X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_train.columns)
+
 # ----------------------------------------------------------------------
 # 5. 训练模型并保存
 # ----------------------------------------------------------------------
 print("--- 2. 开始训练模型 ---")
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
 rf_model.fit(X_train_scaled, y_train)
+
+# Evaluate model
+y_pred = rf_model.predict(X_test_scaled)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+
+print(f"模型评估结果:")
+print(f"  Accuracy: {accuracy:.4f}")
+print(f"  Precision: {precision:.4f}")
+print(f"  Recall: {recall:.4f}")
+print(f"  F1 Score: {f1:.4f}")
+
 print("--- 模型训练完成 ---")
 
 # **保存所有必要的组件**
