@@ -1,9 +1,7 @@
 import os
-import json
 import logging
 from datetime import datetime
 from threading import Lock
-from tempfile import TemporaryDirectory
 import pandas as pd
 import numpy as np
 import joblib
@@ -59,6 +57,7 @@ PERFORMANCE_METRICS = {
     "f1_score": 0.96,
     "auc": 0.99
 }
+# Todo: Sample performance metrics above, should be updated after model training/retraining.
 
 def load_model_components():
     """
@@ -99,6 +98,7 @@ def train_model_with_data(df, target_column='Label'):
         df[col].replace([-np.inf], df[col][np.isfinite(df[col])].min(), inplace=True)
     
     # Label encoding
+    # 个人感觉这一部分打标签是有问题的，因为可能出现新的标签
     le = LabelEncoder()
     df[target_column + '_Encoded'] = le.fit_transform(df[target_column].astype(str))
     
@@ -140,6 +140,7 @@ def train_model_with_data(df, target_column='Label'):
         "f1_score": f1,
         "auc": 0.99  # Placeholder
     }
+    # 更新评估指标，上面的 AUC 只是占位符，实际应用中应计算真实值。
     
     # Save all components
     joblib.dump(rf_model, 'ddos_rf_model.joblib')
@@ -149,6 +150,8 @@ def train_model_with_data(df, target_column='Label'):
     
     return True
 
+# 这个函数仅仅判断了BENIGN标签的内容，没有考虑其他标签的威胁等级划分逻辑
+# todo: 可以根据实际需求调整威胁等级划分逻辑
 def get_threat_level(label, confidence):
     """
     Determine threat level based on label and confidence
@@ -194,6 +197,7 @@ def predict(raw_input_data):
 
     # 5. Inverse map labels
     prediction_label = LE.inverse_transform([prediction_encoded])[0]
+    # 这个标签这里需要注意！！！
 
     # Find highest probability
     max_proba = np.max(prediction_proba)
@@ -212,6 +216,7 @@ def predict(raw_input_data):
 
 # API Routes
 
+# 实例标签，自动显示
 @app.route('/api/sample', methods=['GET'])
 def get_sample_data():
     """
@@ -234,6 +239,7 @@ def get_sample_data():
         "feature_names": feature_names
     })
 
+# 产生一组随机数据
 @app.route('/api/random', methods=['GET'])
 def get_random_data():
     """
@@ -253,6 +259,7 @@ def get_random_data():
         "feature_names": feature_names
     })
 
+# 模拟DDOS攻击，这一部分的数据产生肯定有问题！！！
 @app.route('/api/simulate-attack', methods=['GET'])
 def simulate_attack():
     """
@@ -309,6 +316,7 @@ def simulate_attack():
         "feature_names": feature_names
     })
 
+# 预测部分，改了之后应该是有道理的，但是还需要测试
 @app.route('/api/predict', methods=['POST'])
 def predict_api():
     """
@@ -340,11 +348,27 @@ def predict_api():
             # Add to in-memory alerts if it's not benign
             if result['predicted_label'].upper() != 'BENIGN':
                 with alerts_lock:
+                    # 根据攻击类型定义严重程度
+                    attack_severity = {
+                        'DDOS': 'Critical',
+                        'DOS': 'High',
+                        'PORTSCAN': 'Medium',
+                        'BOT': 'High',
+                        'INFLITRATION': 'High',
+                        'BRUTEFORCE': 'Medium',
+                        'SQLINJECTION': 'Critical',
+                        'XSS': 'Medium',
+                        'FTP-PATATOR': 'Medium',
+                        'SSH-PATATOR': 'Medium'
+                    }
+                    severity = attack_severity.get(result['predicted_label'].upper(), result['threat_level'])
+                            
                     alert = {
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "type": result['predicted_label'],
                         "confidence": result['confidence'],
-                        "level": result['threat_level']
+                        "level": severity,
+                        "threat_level": result['threat_level']  # 保留原有的基于置信度的威胁等级
                     }
                     alerts.append(alert)
                     # Keep only last 50 alerts
@@ -367,7 +391,7 @@ def get_alerts():
     with alerts_lock:
         # Return alerts in reverse order (newest first)
         return jsonify(list(reversed(alerts)))
-
+# 历史记录功能，基于sqlite的数据库
 @app.route('/api/history', methods=['GET'])
 def get_history():
     """
@@ -382,11 +406,27 @@ def get_history():
         
         history = []
         for row in rows:
+            # 根据攻击类型定义严重程度
+            attack_severity = {
+                'DDOS': 'Critical',
+                'DOS': 'High',
+                'PORTSCAN': 'Medium',
+                'BOT': 'High',
+                'INFLITRATION': 'High',
+                'BRUTEFORCE': 'Medium',
+                'SQLINJECTION': 'Critical',
+                'XSS': 'Medium',
+                'FTP-PATATOR': 'Medium',
+                'SSH-PATATOR': 'Medium'
+            }
+            severity = attack_severity.get(row[1].upper(), row[3])
+            
             history.append({
                 "timestamp": row[0],
                 "type": row[1],
                 "confidence": row[2],
-                "level": row[3]
+                "level": severity,
+                "threat_level": row[3]  # 保留原有的基于置信度的威胁等级
             })
         
         return jsonify(history)
@@ -401,6 +441,7 @@ def get_performance():
     """
     return jsonify(PERFORMANCE_METRICS)
 
+# 重训练模型部分，直接执行重训练脚本
 @app.route('/api/retrain', methods=['POST'])
 def retrain_model():
     """
@@ -429,6 +470,7 @@ def retrain_model():
             "message": str(e)
         }), 500
 
+# 新加的，但是和上面的'/api/retrain'接口有很多重复的部分
 @app.route('/api/upload-and-retrain', methods=['POST'])
 def upload_and_retrain():
     """
@@ -494,7 +536,7 @@ def upload_and_retrain():
             "status": "error",
             "message": str(e)
         }), 500
-
+# 心跳检测
 @app.route('/health', methods=['GET'])
 def health_check():
     """
