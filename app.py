@@ -66,9 +66,9 @@ def load_model_components():
     global MODEL, SCALER, LE, FEATURE_COLUMNS
     
     try:
-        MODEL = joblib.load('ddos_rf_model.joblib')
-        SCALER = joblib.load('ddos_scaler.joblib')
-        LE = joblib.load('ddos_label_encoder.joblib')
+        MODEL = joblib.load('./models/ids_decision_tree_model.joblib')
+        SCALER = joblib.load('./models/ids_standard_scaler.joblib')
+        LE = joblib.load('./models/ids_label_encoder.joblib')
         FEATURE_COLUMNS = joblib.load('ddos_feature_columns.joblib')
         logger.info("Model components loaded successfully.")
         return True
@@ -168,7 +168,17 @@ def get_threat_level(label, confidence):
 def predict(raw_input_data):
     """
     Make prediction using the loaded model
+
+    Args:
+        raw_input_data (list): A list of feature values in the exact order
+                                defined by FEATURE_COLUMNS.
     """
+    if not FEATURE_COLUMNS:
+        return {
+            "status": "error",
+            "message": "Feature columns metadata is missing. Model cannot predict."
+        }
+
     # Check input data length
     if len(raw_input_data) != len(FEATURE_COLUMNS):
         return {
@@ -176,36 +186,46 @@ def predict(raw_input_data):
             "message": f"Input feature count error. Need {len(FEATURE_COLUMNS)} features, but received {len(raw_input_data)}."
         }
 
-    # Convert to DataFrame (must maintain column order)
+    # 1. 关键步骤：转换到 DataFrame，并使用训练时保存的 FEATURE_COLUMNS
+    # 这一步确保了列名和列序与训练模型时完全一致。
     new_df = pd.DataFrame([raw_input_data], columns=FEATURE_COLUMNS)
 
-    # 1. Clean (handle NaN/Inf)
+    # 2. 清理 (处理 NaN/Inf)
+    # 替换无穷值和空值为 0 (在部署环境中，通常选择用 0 或中位数填充)
     new_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    # 使用训练函数中处理列名的方式进行清理，确保一致性
+    for col in new_df.columns:
+        if new_df[col].dtype == object:
+            # 确保没有残留的非数字列，如果有，则替换为 0
+            new_df[col] = pd.to_numeric(new_df[col], errors='coerce').fillna(0)
     new_df.fillna(0, inplace=True)
 
-    # 2. Feature scaling (key step: use SCALER.transform)
-    data_scaled = SCALER.transform(new_df)
+    # 3. 特征缩放 (关键步骤: 使用 SCALER.transform)
+    # 注意：输入必须是与训练数据形状相同的 DataFrame
+    try:
+        data_scaled = SCALER.transform(new_df)
+    except Exception as e:
+        logger.error(f"Scaling error: {e}")
+        return {
+            "status": "error",
+            "message": f"Feature scaling failed. Check feature values: {str(e)}"
+        }
 
-    # Convert scaled numpy array back to DataFrame with feature names
-    data_scaled_df = pd.DataFrame(data_scaled, columns=FEATURE_COLUMNS)
+    # 4. 模型预测
+    # 预测和概率
+    prediction_encoded = MODEL.predict(data_scaled)[0]
+    prediction_proba = MODEL.predict_proba(data_scaled)[0]
 
-    # 3. Model prediction
-    prediction_encoded = MODEL.predict(data_scaled_df)[0]
-    
-    # 4. Prediction probability (confidence)
-    prediction_proba = MODEL.predict_proba(data_scaled_df)[0]
-
-    # 5. Inverse map labels
+    # 5. 反向映射标签
     prediction_label = LE.inverse_transform([prediction_encoded])[0]
-    # 这个标签这里需要注意！！！
 
-    # Find highest probability
+    # 找到最高概率作为置信度
     max_proba = np.max(prediction_proba)
 
-    # Determine threat level
+    # 确定威胁等级
     threat_level = get_threat_level(prediction_label, max_proba)
 
-    # Return result
+    # 返回结果
     return {
         "status": "success",
         "predicted_label": prediction_label,
@@ -320,67 +340,66 @@ def simulate_attack():
 @app.route('/api/predict', methods=['POST'])
 def predict_api():
     """
-    Predict endpoint for DDoS detection
+    Predict endpoint for DDoS detection.
+    Expects a JSON payload: {"features": [f1, f2, f3, ...]}
     """
-    if not MODEL or not SCALER or not LE or not FEATURE_COLUMNS:
+    # 立即检查核心组件是否加载
+    if not all([MODEL, SCALER, LE, FEATURE_COLUMNS]):
         return jsonify({
             "status": "error",
-            "message": "Model components not loaded. Please check server logs."
+            "message": "Model components not fully loaded. Check server logs for FileNotFoundError."
         }), 500
 
     try:
         data = request.get_json()
+        if 'features' not in data or not isinstance(data['features'], list):
+            return jsonify({
+                "status": "error",
+                "message": "Invalid JSON format. Expecting {'features': [list of numbers]}"
+            }), 400
+
         features = data['features']
-        
-        # Make prediction
+
+        # 1. 调用核心预测逻辑
         result = predict(features)
-        
-        # If prediction successful and it's not benign, add to alerts and database
+
+        # 2. 结果处理（警报和数据库存储）
         if result['status'] == 'success':
-            # Store in database
+
+            # --- 数据库存储 ---
             conn = sqlite3.connect('ddos_detection.db')
             c = conn.cursor()
-            c.execute("INSERT INTO detection_history (timestamp, predicted_label, confidence, threat_level) VALUES (?, ?, ?, ?)",
-                      (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), result['predicted_label'], result['confidence'], result['threat_level']))
+            # 确保 features_count 字段被正确填充
+            c.execute("INSERT INTO detection_history (timestamp, predicted_label, confidence, threat_level, features_count) VALUES (?, ?, ?, ?, ?)",
+                      (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                       result['predicted_label'],
+                       result['confidence'],
+                       result['threat_level'],
+                       len(features)))
             conn.commit()
             conn.close()
-            
-            # Add to in-memory alerts if it's not benign
+
+            # --- 内存警报 ---
             if result['predicted_label'].upper() != 'BENIGN':
                 with alerts_lock:
-                    # 根据攻击类型定义严重程度
-                    attack_severity = {
-                        'DDOS': 'Critical',
-                        'DOS': 'High',
-                        'PORTSCAN': 'Medium',
-                        'BOT': 'High',
-                        'INFLITRATION': 'High',
-                        'BRUTEFORCE': 'Medium',
-                        'SQLINJECTION': 'Critical',
-                        'XSS': 'Medium',
-                        'FTP-PATATOR': 'Medium',
-                        'SSH-PATATOR': 'Medium'
-                    }
-                    severity = attack_severity.get(result['predicted_label'].upper(), result['threat_level'])
-                            
                     alert = {
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "type": result['predicted_label'],
                         "confidence": result['confidence'],
-                        "level": severity,
-                        "threat_level": result['threat_level']  # 保留原有的基于置信度的威胁等级
+                        "level": result['threat_level']
                     }
                     alerts.append(alert)
-                    # Keep only last 50 alerts
-                    if len(alerts) > 50:
+                    # 保持最多 MAX_ALERTS 条警报
+                    if len(alerts) > 'ddos_detection.db'.MAX_ALERTS:
                         alerts.pop(0)
-        
+
         return jsonify(result)
+
     except Exception as e:
-        logger.error(f"Prediction error: {e}")
+        logger.error(f"Prediction API error: {e}")
         return jsonify({
             "status": "error",
-            "message": str(e)
+            "message": f"Internal prediction error: {str(e)}"
         }), 500
 
 @app.route('/api/alerts', methods=['GET'])

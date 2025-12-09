@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder # 引入 LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, f1_score, precision_score, recall_score
 
 # 设置文件路径 (请修改为你实际的文件名)
 file_path = './data/Wednesday-workingHours.pcap_ISCX.csv'
@@ -100,9 +100,16 @@ print("\n--- 步骤 6: 模型评估 ---")
 
 # 使用测试集进行预测
 y_pred = dt_model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
 
 # 打印整体准确率
-print(f"测试集整体准确率: {accuracy_score(y_test, y_pred):.4f}")
+print(f"测试集整体准确率: {accuracy:.4f}")
+print(f"测试集精确度: {precision:.4f}")
+print(f"测试集召回率: {recall:.4f}")
+print(f"测试集 F1-Score: {f1:.4f}")
 
 # 打印详细的分类报告 (注意 F1-Score 对于类别不平衡问题更重要)
 print("\n--- 多分类详细评估报告 ---")
