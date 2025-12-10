@@ -24,7 +24,7 @@ app = Flask(__name__)
 CORS(app)  # 允许跨域请求
 
 # 配置
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 上传最大 100MB
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 上传最大 500MB
 MAX_ALERTS = 50  # 内存中保存的最大警报数量
 DB_FILE = 'ddos_detection.db'
 
