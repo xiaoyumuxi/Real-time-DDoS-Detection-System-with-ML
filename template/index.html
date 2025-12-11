@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>人工智能入侵检测系统</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let isAutoDetecting = false;
+    let autoDetectInterval;
+
+    function performPrediction() {
+      // 获取所有特征值
+      const features = [];
+      const visibleFeatures = $('#features-container input[type="number"]');
+      const hiddenFeatures = $('#features-container input[type="hidden"]');
+
+      // 收集可见特征
+      visibleFeatures.each(function () {
+        features.push(parseFloat($(this).val()));
+      });
+
+      // 收集隐藏特征（从第5个开始，跳过前5个可见的）
+      hiddenFeatures.each(function (index) {
+        if (index >= 5) {
+          features.push(parseFloat($(this).val()));
+        }
+      });
+
+      // 发送请求到后端进行预测
+      $.ajax({
+        url: 'http://127.0.0.1:5000/api/predict',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ features: features }),
+        success: function (response) {
+          const { status, predicted_label, confidence, encoded_value, threat_level } = response;
+
+          if (status === 'success') {
+            let threat_level_text = '';
+            if (predicted_label === 'BENIGN') {
+              threat_level_text = '安全';
+              $('#result-content').removeClass('threat-warning').removeClass('threat-danger').addClass('threat-safe');
+            } else {
+              if (confidence > 0.9) {
+                threat_level_text = '高风险';
+                $('#result-content').removeClass('threat-safe').removeClass('threat-warning').addClass('threat-danger');
+              } else if (confidence > 0.7) {
+                threat_level_text = '中风险';
+                $('#result-content').removeClass('threat-safe').removeClass('threat-danger').addClass('threat-warning');
+              } else {
+                threat_level_text = '低风险';
+                $('#result-content').removeClass('threat-safe').removeClass('threat-danger').addClass('threat-warning');
+              }
+            }
+
+            // 更新结果显示
+            $('#result-text').text(`预测结果: ${predicted_label} (${threat_level_text})`);
+            $('#confidence-value').text(confidence.toFixed(4));
+
+            // 添加结果到历史记录
+            const timestamp = new Date().toLocaleString();
+            $('#history tbody').prepend(`
+                        <tr class="${predicted_label === 'BENIGN' ? 'table-success' : 'table-danger'}">
+                            <td>${timestamp}</td>
+                            <td>${predicted_label}</td>
+                            <td>${threat_level_text}</td>
+                            <td>${confidence.toFixed(4)}</td>
+                            <td>正常</td>
+                        </tr>
+                    `);
+
+            // 如果预测结果不是良性，添加到警报列表
+            if (predicted_label !== 'BENIGN') {
+              const alertRow = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong>警报!</strong> 检测到潜在的${predicted_label}攻击，威胁等级: ${threat_level_text}。
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>`;
+              $('#alert-container').prepend(alertRow);
+
+              // 限制警报数量
+              const alerts = $('#alert-container .alert');
+              if (alerts.length > 5) {
+                alerts.last().remove();
+              }
+            }
+
+            // 显示结果区域
+            $('#result-content').show();
+            $('#result-container').show();
+
+          } else {
+            alert('预测失败，请检查后端服务是否正常运行');
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error('AJAX请求失败:', error);
+          alert('预测请求失败，请检查后端服务是否正常运行');
+        }
+      });
+    }
+
+    // 自动检测按钮事件
+    $('#auto-detect-btn').click(function () {
+      // 检查是否已在检测中
+      if (isAutoDetecting) {
+        // 停止自动检测
+        isAutoDetecting = false;
+        $(this).text('开始自动检测');
+        clearInterval(autoDetectInterval);
+        console.log('自动检测已停止');
+      } else {
+        // 开始自动检测
+        isAutoDetecting = true;
+        $(this).text('停止自动检测');
+        console.log('开始自动检测，每5秒一次...');
+
+        // 立即执行一次检测
+        performPrediction();
+
+        // 设置定时检测
+        autoDetectInterval = setInterval(performPrediction, 5000);
+      }
+    });
+
+    // 页面加载完成后获取样本数据
+    $(document).ready(function () {
+      // 从后端获取样本数据
+      $.ajax({
+        url: 'http://127.0.0.1:5000/api/sample',
+        type: 'GET',
+        success: function (response) {
+          // 使用样本数据填充表单
+          const { features, feature_names } = response;
+
+          // 只显示前5个特征和后5个特征，其余隐藏
+          const visibleFeatures = features.slice(0, 5).concat(features.slice(-5));
+          const visibleNames = feature_names.slice(0, 5).concat(feature_names.slice(-5));
+
+          let featuresHtml = '';
+          for (let i = 0; i < visibleFeatures.length; i++) {
+            featuresHtml += `<div class="form-group">
+                        <label for="feature-${i}">${visibleNames[i]}</label>
+                        <input type="number" class="form-control" id="feature-${i}" value="${visibleFeatures[i]}" step="any">
+                    </div>`;
+          }
+
+          // 添加隐藏的所有特征
+          for (let i = 0; i < features.length; i++) {
+            featuresHtml += `<input type="hidden" id="hidden-feature-${i}" value="${features[i]}">`;
+          }
+
+          $('#features-container').html(featuresHtml);
+        },
+        error: function (xhr, status, error) {
+          console.error('获取样本数据失败:', error);
+        }
+      });
+    });
+  </script>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人工智能入侵检测系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            flex: 1;
+            margin: 0 0.5rem;
+        }
+        .stat-card h3 {
+            margin-top: 0;
+            color: #343a40;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        .normal {
+            color: #28a745;
+        }
+        .ddos {
+            color: #dc3545;
+        }
+        .total {
+            color: #007bff;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        .alert-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .alert-danger {
+            border-left: 4px solid #dc3545;
+        }
+        .alert-warning {
+            border-left: 4px solid #ffc107;
+        }
+        .alert-normal {
+            border-left: 4px solid #28a745;
+        }
+        .btn-refresh {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>人工智能入侵检测系统</h1>
+    </div>
+    <div class="container">
+        <button class="btn btn-primary btn-refresh" id="refresh-btn">刷新数据</button>
+        
+        <!-- 统计信息 -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <h3>正常流量</h3>
+                <div class="stat-value normal" id="normal-count">1200</div>
+            </div>
+            <div class="stat-card">
+                <h3>DDoS攻击</h3>
+                <div class="stat-value ddos" id="ddos-count">80</div>
+            </div>
+            <div class="stat-card">
+                <h3>总流量</h3>
+                <div class="stat-value total" id="total-count">1280</div>
+            </div>
+        </div>
+        
+        <!-- 流量图表 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>网络流量实时监控</h2>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="traffic-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 警报列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>实时警报</h2>
+            </div>
+            <div class="card-body" id="alerts-container">
+                <!-- 警报项目将动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let trafficChart;
+        
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('traffic-chart').getContext('2d');
+            trafficChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '正常流量',
+                            data: [],
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'DDoS攻击',
+                            data: [],
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: '时间'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: '数据包数量'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新图表数据
+        function updateChart(data) {
+            if (!trafficChart) return;
+            
+            // 只显示最近30分钟的数据
+            const recentData = data.slice(-30);
+            const labels = recentData.map(item => {
+                const date = new Date(item.timestamp);
+                return date.toLocaleTimeString();
+            });
+            
+            const normalData = recentData.map(item => item.is_attack ? 0 : item.packets);
+            const attackData = recentData.map(item => item.is_attack ? item.packets : 0);
+            
+            trafficChart.data.labels = labels;
+            trafficChart.data.datasets[0].data = normalData;
+            trafficChart.data.datasets[1].data = attackData;
+            trafficChart.update();
+        }
+        
+        // 更新统计信息
+        function updateStats(stats) {
+            document.getElementById('normal-count').textContent = stats.normal;
+            document.getElementById('ddos-count').textContent = stats.ddos;
+            document.getElementById('total-count').textContent = stats.total;
+        }
+        
+        // 更新警报列表
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alerts-container');
+            container.innerHTML = '';
+            
+            alerts.forEach(alert => {
+                const alertElement = document.createElement('div');
+                alertElement.className = `alert-item alert-${alert.status}`;
+                
+                const date = new Date(alert.timestamp);
+                const timeStr = date.toLocaleString();
+                
+                alertElement.innerHTML = `
+                    <h4>${alert.attack_type} 攻击警报</h4>
+                    <p><strong>时间:</strong> ${timeStr}</p>
+                    <p><strong>源IP:</strong> ${alert.src_ip}</p>
+                    <p><strong>目标IP:</strong> ${alert.dst_ip}</p>
+                `;
+                
+                container.appendChild(alertElement);
+            });
+        }
+        
+        // 获取模拟流量数据
+        function getMockTrafficData() {
+            const data = [];
+            const now = new Date();
+            for (let i = 60; i >= 0; i--) {
+                const time = new Date(now - i * 60000); // 过去60分钟，每分钟一个点
+                data.push({
+                    timestamp: time.toISOString(),
+                    packets: Math.floor(Math.random() * 200) + 100,
+                    bytes: Math.floor(Math.random() * 1000000) + 500000,
+                    is_attack: Math.random() > 0.9 // 10%的概率是攻击
+                });
+            }
+            return data;
+        }
+        
+        // 获取模拟警报数据
+        function getMockAlerts() {
+            return [
+                {
+                    id: 1,
+                    timestamp: new Date(Date.now() - 300000).toISOString(),
+                    src_ip: '192.168.1.100',
+                    dst_ip: '192.168.1.200',
+                    attack_type: 'DDoS',
+                    status: 'danger'
+                },
+                {
+                    id: 2,
+                    timestamp: new Date(Date.now() - 600000).toISOString(),
+                    src_ip: '10.0.0.50',
+                    dst_ip: '10.0.0.100',
+                    attack_type: 'DDoS',
+                    status: 'warning'
+                },
+                {
+                    id: 3,
+                    timestamp: new Date(Date.now() - 1200000).toISOString(),
+                    src_ip: '172.16.0.75',
+                    dst_ip: '172.16.0.25',
+                    attack_type: 'Normal',
+                    status: 'normal'
+                }
+            ];
+        }
+        
+        // 刷新数据
+        function refreshData() {
+            // 尝试从后端获取数据
+            $.ajax({
+                url: 'http://localhost:5000/api/traffic',
+                type: 'GET',
+                success: function(trafficData) {
+                    updateChart(trafficData);
+                },
+                error: function() {
+                    // 使用模拟数据
+                    const mockData = getMockTrafficData();
+                    updateChart(mockData);
+                }
+            });
+            
+            $.ajax({
+                url: 'http://localhost:5000/api/stats',
+                type: 'GET',
+                success: function(stats) {
+                    updateStats(stats);
+                },
+                error: function() {
+                    // 使用模拟数据
+                    updateStats({ normal: 1200, ddos: 80, total: 1280 });
+                }
+            });
+            
+            $.ajax({
+                url: 'http://localhost:5000/api/alerts',
+                type: 'GET',
+                success: function(alerts) {
+                    updateAlerts(alerts);
+                },
+                error: function() {
+                    // 使用模拟数据
+                    const mockAlerts = getMockAlerts();
+                    updateAlerts(mockAlerts);
+                }
+            });
+        }
+        
+        // 页面加载完成后初始化
+        $(document).ready(function() {
+            initChart();
+            refreshData();
+            
+            // 刷新按钮事件
+            $('#refresh-btn').click(function() {
+                refreshData();
+            });
+            
+            // 自动刷新（每30秒）
+            setInterval(refreshData, 30000);
+        });
+    </script>
+</body>
+</html>

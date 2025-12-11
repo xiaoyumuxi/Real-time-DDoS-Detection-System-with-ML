@@ -1,0 +1,333 @@
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f7fa;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* 主应用容器 */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部样式 */
+.app-header {
+  background-color: #ffffff;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-header h1 {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.refresh-btn {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.refresh-btn:hover {
+  background-color: #2980b9;
+}
+
+.refresh-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* 主要内容区域 */
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 错误提示 */
+.error-message {
+  background-color: #fff3f3;
+  border: 1px solid #ffcccc;
+  color: #d32f2f;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* 统计卡片区域 */
+.stats-section {
+  margin-bottom: 2rem;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card h3 {
+  font-size: 1rem;
+  color: #7f8c8d;
+  font-weight: 500;
+  margin-bottom: 0.8rem;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #95a5a6;
+}
+
+/* 不同类型的统计卡片 */
+.stat-card.total .stat-value {
+  color: #3498db;
+}
+
+.stat-card.normal .stat-value {
+  color: #27ae60;
+}
+
+.stat-card.attack .stat-value {
+  color: #e74c3c;
+}
+
+.stat-card.risk .stat-value {
+  color: #f39c12;
+}
+
+/* 风险指示器 */
+.risk-indicator {
+  margin: 0.5rem 0;
+}
+
+.risk-level {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-level.low {
+  background-color: #27ae60;
+}
+
+.risk-level.medium {
+  background-color: #f39c12;
+}
+
+.risk-level.high {
+  background-color: #e74c3c;
+}
+
+/* 图表区域 */
+.chart-section {
+  margin-bottom: 2rem;
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chart-section h2 {
+  font-size: 1.3rem;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.chart-container {
+  height: 400px;
+  width: 100%;
+}
+
+/* 警报列表区域 */
+.alerts-section {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.alerts-section h2 {
+  font-size: 1.3rem;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.alerts-container {
+  overflow-x: auto;
+}
+
+.no-alerts {
+  text-align: center;
+  padding: 3rem;
+  color: #95a5a6;
+  font-style: italic;
+}
+
+.alerts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.alerts-table th {
+  background-color: #f8f9fa;
+  padding: 0.8rem;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.alerts-table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.alerts-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* 状态徽章 */
+.status-badge {
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-normal {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-ddos {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.status-warning {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+/* 页脚样式 */
+.app-footer {
+  background-color: white;
+  padding: 1rem;
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  border-top: 1px solid #e9ecef;
+  margin-top: 2rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .app-main {
+    padding: 1rem;
+  }
+
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+
+  .alerts-table {
+    font-size: 0.8rem;
+  }
+
+  .alerts-table th,
+  .alerts-table td {
+    padding: 0.5rem;
+  }
+
+  .chart-container {
+    height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: 0.8rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+  }
+
+  .chart-section, .alerts-section {
+    padding: 1rem;
+  }
+}
