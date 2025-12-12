@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import classification_report, accuracy_score, f1_score, precision_score, recall_score
 
 # 设置文件路径 (请修改为你实际的文件名)
-file_path = './data/Wednesday-workingHours.pcap_ISCX.csv'
+file_path = 'Wednesday-workingHours.pcap_ISCX.csv/Wednesday-workingHours.pcap_ISCX.csv'
 
 print("正在读取数据...")
 
