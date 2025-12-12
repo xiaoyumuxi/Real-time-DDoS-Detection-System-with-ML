@@ -3,7 +3,7 @@ template/node_modules/*
 *.csv
 *.parquet
 *.db
-*.joblib
+
 
 # 默认忽略的文件
 /shelf/
