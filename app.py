@@ -486,7 +486,6 @@ def predict_api():
 @app.route('/api/alerts', methods=['GET'])
 def get_alerts():
     """获取最新警报"""
-    # todo: 这里需要增加有关警报的逻辑，需要统计10s内出现了多少个非BEGINE的攻击，1~5低5~7中7以上高
     with alerts_lock:
         return jsonify(list(reversed(alerts)))
 
@@ -590,15 +589,6 @@ def get_attack_stream_sample():
     except Exception as e:
         logger.error(f"/api/stream error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-
-@app.route('/api/stream', methods=['GET'])
-def get_sample_data():
-    # todo: 这里需要模拟一个攻击流，已经讲过了的
-    # 示例数据 (长度需要与模型一致)
-    sample = [0] * (len(FEATURE_COLUMNS) if FEATURE_COLUMNS else 78)
-    names = FEATURE_COLUMNS if FEATURE_COLUMNS else [f"f_{i}" for i in range(78)]
-    return jsonify({"features": sample, "feature_names": names})
 
 
 @app.route('/api/random', methods=['GET'])
