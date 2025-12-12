@@ -10,9 +10,9 @@ import sqlite3
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler, LabelEncoder, label_binarize
 
 # --- 配置部分 ---
 # 设置日志
@@ -34,7 +34,7 @@ SCALER = None
 LE = None
 FEATURE_COLUMNS = None
 
-# 模型文件路径 (与 training.py 保持一致)
+# 模型文件路径 (与 trainning.py 保持一致)
 MODEL_PATH = './models/ddos_rf_model.joblib'
 SCALER_PATH = './models/ddos_scaler.joblib'
 ENCODER_PATH = './models/ddos_label_encoder.joblib'
@@ -119,6 +119,7 @@ def load_model_components():
 # 3. 核心预测与辅助函数
 # ----------------------------------------------------------------------
 def get_threat_level(label, confidence):
+    # todo: 这一部分需要重写逻辑
     """根据标签和置信度确定威胁等级"""
     if label.upper() == 'BENIGN':
         return 'None'
@@ -217,7 +218,7 @@ def train_model_with_data(df, target_column='Label'):
             logger.error(error_msg)
             return {'success': False, 'message': error_msg, 'stats': {}}
 
-        # 处理 Inf 和 NaN (与 training.py 保持一致)
+        # 处理 Inf 和 NaN
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df.dropna(inplace=True)  # 这里选择直接丢弃，保证训练质量
 
@@ -264,12 +265,37 @@ def train_model_with_data(df, target_column='Label'):
         # 7. 评估
         y_pred = rf_model.predict(X_test_scaled)
 
+        # 1. 获取模型对测试集的概率输出 (AUC 必需)
+        y_scores = rf_model.predict_proba(X_test)
+
+        # 2. 对真实标签进行二值化 (One-Hot 编码) 以适应 OvR 策略
+        classes = np.unique(y_test)
+        y_test_binarized = label_binarize(y_test, classes=classes)
+
+        # 3. 获取每个类别的支持度 (样本数), 用于计算加权平均
+        support = y_test.value_counts().sort_index().values
+        total_support = np.sum(support)
+
+        roc_auc = dict()
+        weighted_auc_sum = 0
+
+        for i in range(len(classes)):
+            # OvR 策略：计算每个类别的 AUC
+            fpr, tpr, _ = roc_curve(y_test_binarized[:, i], y_scores[:, i])
+            roc_auc[i] = auc(fpr, tpr)
+
+            # 计算加权和
+            weight = support[i] / total_support
+            weighted_auc_sum += roc_auc[i] * weight
+
+        auc_weighted = weighted_auc_sum
+
         PERFORMANCE_METRICS = {
             "accuracy": accuracy_score(y_test, y_pred),
             "precision": precision_score(y_test, y_pred, average='weighted', zero_division=0),
             "recall": recall_score(y_test, y_pred, average='weighted', zero_division=0),
-            "f1_score": f1_score(y_test, y_pred, average='weighted', zero_division=0),
-            "auc": 0.99  # 多分类 AUC 计算较复杂，暂时占位
+            "FPR": 1.0 - recall_score(y_test, y_pred, average=None, zero_division=0)[0],
+            "auc": auc_weighted
         }
 
         # 8. 保存所有组件 (覆盖旧文件)
@@ -477,6 +503,6 @@ if __name__ == '__main__':
     # 启动时加载模型
     if not load_model_components():
         logger.warning("⚠️ Warning: Model components could not be loaded at startup.")
-        logger.warning("   Please ensure 'training.py' has been run and generated files in './models/'.")
+        logger.warning("   Please ensure 'trainning.py' has been run and generated files in './models/'.")
 
     app.run(host='127.0.0.1', port=5000, debug=True)

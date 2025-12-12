@@ -143,7 +143,7 @@ print(f"测试集AUC: {auc_weighted:.4f}")
 performance_metrics = {
     "accuracy": f"{accuracy:.4f}",
     "precision": f"{precision:.4f}",
-    "recall": f"{tnr_score:.4f}",
+    "recall": f"{recall:.4f}",
     "FPR": f"{FPR:.4f}",
     "auc": f"{auc_weighted:.4f}"
 }
