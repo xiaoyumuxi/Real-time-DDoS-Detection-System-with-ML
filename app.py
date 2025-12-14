@@ -557,22 +557,140 @@ def count_to_level(c: int) -> str:
         return "Medium"
     return "High"
 
+# ====== 放在 app.py 顶部 import 附近（如果已有就不用重复）======
+import os
+import random
+import time
+import pandas as pd
+from threading import Lock
+from flask import request, jsonify
+
+# ====== 异常流量 CSV 缓存（新增）======
+ANOMALY_TRAFFIC_DF = None
+ANOMALY_FEATURE_COLS = None
+ANOMALY_LABEL_COL = None
+anomaly_traffic_lock = Lock()
+
+def _resolve_anomaly_csv_path() -> str:
+    """
+    兼容不同启动目录：优先按 app.py 所在目录定位 stream/anomaly_traffic.csv
+    """
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "stream", "anomaly_traffic.csv"),
+        os.path.join(os.getcwd(), "stream", "anomaly_traffic.csv"),
+        "stream/anomaly_traffic.csv",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return candidates[0]  # 默认返回第一个（用于报错提示）
+
+def _load_anomaly_traffic():
+    """
+    只加载一次 anomaly_traffic.csv，并缓存：
+      - ANOMALY_TRAFFIC_DF
+      - ANOMALY_FEATURE_COLS
+      - ANOMALY_LABEL_COL（如果能识别）
+    """
+    global ANOMALY_TRAFFIC_DF, ANOMALY_FEATURE_COLS, ANOMALY_LABEL_COL
+
+    if ANOMALY_TRAFFIC_DF is not None and ANOMALY_FEATURE_COLS is not None:
+        return
+
+    with anomaly_traffic_lock:
+        if ANOMALY_TRAFFIC_DF is not None and ANOMALY_FEATURE_COLS is not None:
+            return
+
+        csv_path = _resolve_anomaly_csv_path()
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"anomaly traffic csv not found: {csv_path}")
+
+        df = pd.read_csv(csv_path)
+
+        # 1) 尝试识别 label 列（可选）
+        label_col = None
+        for c in df.columns:
+            if str(c).strip().lower() in ("label", "class", "target", "y"):
+                label_col = c
+                break
+
+        # 2) 选择特征列：优先用你模型的 FEATURE_COLUMNS（如果存在且匹配）
+        feature_cols = None
+        try:
+            if "FEATURE_COLUMNS" in globals() and FEATURE_COLUMNS:
+                # FEATURE_COLUMNS 可能是 list[str]
+                if all(col in df.columns for col in FEATURE_COLUMNS):
+                    feature_cols = list(FEATURE_COLUMNS)
+        except Exception:
+            pass
+
+        # 3) 如果 CSV 不包含完整 FEATURE_COLUMNS，则退化为：取所有数值列（排除 label）
+        if feature_cols is None:
+            tmp = df.copy()
+            if label_col and label_col in tmp.columns:
+                tmp = tmp.drop(columns=[label_col])
+            # 只保留数值列
+            tmp = tmp.select_dtypes(include=["number"])
+            feature_cols = list(tmp.columns)
+
+        if not feature_cols:
+            raise ValueError("No numeric feature columns found in anomaly_traffic.csv")
+
+        # 4) 如果模型期望 78（或 FEATURE_COLUMNS 长度），这里做一致性校验
+        expected = None
+        if "FEATURE_COLUMNS" in globals() and FEATURE_COLUMNS:
+            expected = len(FEATURE_COLUMNS)
+        # 没有 FEATURE_COLUMNS 就不强制，但一般你模型是 78
+        if expected is not None and len(feature_cols) != expected:
+            raise ValueError(
+                f"Feature count mismatch: csv has {len(feature_cols)} cols, "
+                f"model expects {expected}. Check anomaly_traffic.csv columns."
+            )
+
+        ANOMALY_TRAFFIC_DF = df
+        ANOMALY_FEATURE_COLS = feature_cols
+        ANOMALY_LABEL_COL = label_col
+
+
+# ====== 保持你之前的“三档固定间隔 + 阈值逻辑不变”======
+MODE_INTERVAL_MS = {
+    "Low": 2000,     # 2秒一次
+    "Medium": 1000,  # 1秒一次
+    "High": 500,     # 0.5秒一次（1秒两次）
+}
+
+LEVEL_THRESHOLDS = {
+    "low_max": 5,      # 0~5 => Low
+    "medium_max": 10,  # 6~10 => Medium
+    # >=11 => High
+}
+
+def count_to_level(c: int) -> str:
+    if c <= LEVEL_THRESHOLDS["low_max"]:
+        return "Low"
+    if c <= LEVEL_THRESHOLDS["medium_max"]:
+        return "Medium"
+    return "High"
+
+
+# ====== ✅ 替换原来的 /api/stream 路由为下面这个 ======
 @app.route('/api/stream', methods=['GET'])
 def get_attack_stream_sample():
     """
-    生成一个10秒攻击计划：
-      - Low: 2秒一次
-      - Medium: 1秒一次
-      - High: 0.5秒一次（1秒两次）
-    三档选择是随机的（除非你传 mode=Low/Medium/High）。
-    返回 stream: [{features,label,at_ms,ts}, ...]
+    改动点：异常流量从 stream/anomaly_traffic.csv 随机抽取（每次事件随机一行）
+    其他逻辑保持：
+      - mode 三档随机（可用 ?mode= 指定）
+      - Low: 2s一次, Medium: 1s一次, High: 0.5s一次
+      - window 默认 TIME_WINDOW_SECONDS（默认10）
+      - 返回 stream[{features,label,at_ms,ts}]
     """
     try:
-        # 1) 确保样本库存在
-        if not ATTACK_SAMPLE_LIBRARY:
-            ok = build_attack_sample_library()
-            if not ok or not ATTACK_SAMPLE_LIBRARY:
-                return jsonify({"status": "error", "message": "Attack sample library not available."}), 500
+        # 1) 加载异常流量 CSV（只加载一次）
+        _load_anomaly_traffic()
+
+        df = ANOMALY_TRAFFIC_DF
+        feature_cols = ANOMALY_FEATURE_COLS
+        label_col = ANOMALY_LABEL_COL
 
         # 2) window 秒数：默认 TIME_WINDOW_SECONDS，没有就 10
         default_window = int(TIME_WINDOW_SECONDS) if "TIME_WINDOW_SECONDS" in globals() else 10
@@ -586,27 +704,53 @@ def get_attack_stream_sample():
 
         interval = MODE_INTERVAL_MS[mode]
 
-        # 4) label 过滤（可选）
+        # 4) label 过滤（如果 CSV 有 label 列才支持）
         label_filter = request.args.get("label")
-        candidates = ATTACK_SAMPLE_LIBRARY
+        df_candidates = df
         if label_filter:
-            candidates = [s for s in candidates if s.get("label") == label_filter]
-        if not candidates:
-            return jsonify({"status": "error", "message": f"No samples for label={label_filter}"}), 404
+            if not label_col:
+                return jsonify({
+                    "status": "error",
+                    "message": "label filter requested but anomaly_traffic.csv has no label column."
+                }), 400
+            df_candidates = df[df[label_col] == label_filter]
+            if df_candidates.empty:
+                return jsonify({
+                    "status": "error",
+                    "message": f"No samples found for label '{label_filter}'."
+                }), 404
 
-        # 5) 按固定间隔生成 at_ms
-        offsets = list(range(0, window_ms, interval))  # 不含 window_ms
-        attack_frequency = len(offsets)                # 10秒内次数：Low=5, Med=10, High=20
+        # 5) 按固定间隔生成 at_ms（保持原逻辑：10秒=>Low=5, Med=10, High=20）
+        offsets = list(range(0, window_ms, interval))
+        attack_frequency = len(offsets)
 
+        # 6) 每个事件随机抽一行异常流量作为 features
         start_ms = int(time.time() * 1000)
         stream = []
+        n = len(df_candidates)
+
         for off in offsets:
-            s = random.choice(candidates)
+            # 随机行
+            ridx = random.randrange(n)
+            row = df_candidates.iloc[ridx]
+
+            # features：转成 float list，NaN 用 0.0
+            feats = pd.to_numeric(row[feature_cols], errors="coerce").fillna(0.0).astype(float).tolist()
+
+            # label：优先用 CSV 自带 label；否则 fallback
+            lbl = None
+            if label_col:
+                lbl = row[label_col]
+            elif label_filter:
+                lbl = label_filter
+            else:
+                lbl = "ANOMALY"
+
             stream.append({
-                "features": s.get("features"),
-                "label": s.get("label"),
-                "at_ms": off,             # 相对开始的偏移
-                "ts": start_ms + off      # 绝对时间戳（可选）
+                "features": feats,
+                "label": str(lbl) if lbl is not None else "ANOMALY",
+                "at_ms": off,
+                "ts": start_ms + off
             })
 
         return jsonify({
@@ -620,6 +764,7 @@ def get_attack_stream_sample():
         })
 
     except Exception as e:
+        logger.error(f"/api/stream error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
