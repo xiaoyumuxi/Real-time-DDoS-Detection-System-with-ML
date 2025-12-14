@@ -1,10 +1,11 @@
 """
-单元测试文件：测试所有API功能，包括key重复测试
-测试覆盖：
-1. 所有API端点的正常功能
-2. JSON请求中key重复的情况
-3. 边界情况和错误处理
-4. 数据验证和异常处理
+"""Unit Test File: Test all API functionality including key duplication tests
+
+Test Coverage:
+1. Normal functionality of all API endpoints
+2. JSON request key duplication scenarios
+3. Edge cases and error handling
+4. Data validation and exception handling
 """
 
 import pytest
@@ -18,7 +19,7 @@ from io import BytesIO
 from unittest.mock import patch, MagicMock
 import sys
 
-# 添加项目根目录到路径
+# Add project root directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, load_model_components, init_db, MODEL, SCALER, LE, FEATURE_COLUMNS
@@ -26,29 +27,29 @@ from app import app, load_model_components, init_db, MODEL, SCALER, LE, FEATURE_
 
 @pytest.fixture
 def client():
-    """创建测试客户端"""
+    """Create test client"""
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
     
-    # 创建临时数据库
+    # Create temporary database
     test_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
     test_db.close()
     
-    # 备份原始数据库路径
+    # Backup original database path
     from app import DB_FILE
     original_db = DB_FILE
     
-    # 临时替换数据库路径
+    # Temporarily replace database path
     import app as app_module
     app_module.DB_FILE = test_db.name
     
-    # 初始化测试数据库
+    # Initialize test database
     init_db()
     
     with app.test_client() as client:
         yield client
     
-    # 清理：恢复原始数据库路径并删除测试数据库
+    # Cleanup: restore original database path and delete test database
     app_module.DB_FILE = original_db
     if os.path.exists(test_db.name):
         os.unlink(test_db.name)
@@ -56,28 +57,28 @@ def client():
 
 @pytest.fixture
 def sample_features():
-    """生成示例特征向量"""
-    # 假设有78个特征（根据代码中的默认值）
+    """Generate sample feature vector"""
+    # Assume 78 features (based on default value in code)
     return [float(i) for i in range(78)]
 
 
 @pytest.fixture
 def mock_model_loaded():
-    """模拟模型已加载"""
+    """Mock model loaded state"""
     with patch('app.MODEL', MagicMock()), \
          patch('app.SCALER', MagicMock()), \
          patch('app.LE', MagicMock()), \
          patch('app.FEATURE_COLUMNS', [f'f_{i}' for i in range(78)]):
-        # 设置LE的inverse_transform方法
+        # Set LE's inverse_transform method
         app.LE.inverse_transform = MagicMock(return_value=['BENIGN'])
         yield
 
 
 class TestHealthCheck:
-    """测试健康检查端点"""
+    """Test health check endpoint"""
     
     def test_health_check_success(self, client):
-        """测试健康检查成功"""
+        """Test successful health check"""
         response = client.get('/health')
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -87,10 +88,10 @@ class TestHealthCheck:
 
 
 class TestPredictAPI:
-    """测试预测API端点"""
+    """Test prediction API endpoint"""
     
     def test_predict_missing_features(self, client):
-        """测试缺少features字段"""
+        """Test missing features field"""
         response = client.post('/api/predict', 
                              json={})
         assert response.status_code == 400
@@ -99,70 +100,70 @@ class TestPredictAPI:
         assert 'features' in data['message'].lower()
     
     def test_predict_empty_json(self, client):
-        """测试空JSON请求"""
+        """Test empty JSON request"""
         response = client.post('/api/predict',
                              json=None,
                              content_type='application/json')
         assert response.status_code == 400
     
     def test_predict_key_duplicate_in_json(self, client, sample_features, mock_model_loaded):
-        """测试JSON中key重复的情况"""
-        # 创建包含重复key的JSON字符串
-        # 注意：Python的dict会自动处理重复key（保留最后一个），
-        # 但我们可以测试这种情况
+        """Test JSON with duplicate keys"""
+        # Create JSON string with duplicate keys
+        # Note: Python dict automatically handles duplicate keys (keeps last one)
+        # but we can test this scenario
         json_str = '{"features": [1, 2, 3], "features": ' + str(sample_features) + '}'
         
-        # 使用requests方式发送，模拟key重复
+        # Send using requests method, simulating key duplication
         response = client.post('/api/predict',
                              data=json_str,
                              content_type='application/json')
         
-        # 由于Python dict会自动处理重复key，应该能正常处理
-        # 如果模型未加载，会返回503
+        # Since Python dict handles duplicate keys automatically, should process normally
+        # If model not loaded, returns 503
         assert response.status_code in [200, 400, 503]
     
     def test_predict_multiple_duplicate_keys(self, client, sample_features):
-        """测试多个重复key的情况"""
-        # 创建包含多个重复key的JSON
+        """Test multiple duplicate keys"""
+        # Create JSON with multiple duplicate keys
         json_data = {
             'features': sample_features,
-            'features': sample_features,  # 重复的key
+            'features': sample_features,  # Duplicate key
             'extra': 'value1',
-            'extra': 'value2'  # 重复的key
+            'extra': 'value2'  # Duplicate key
         }
         
         response = client.post('/api/predict',
                              json=json_data)
-        # 应该能处理（Python dict会保留最后一个值）
+        # Should be handled (Python dict keeps last value)
         assert response.status_code in [200, 400, 503]
     
     def test_predict_invalid_features_type(self, client):
-        """测试features类型错误"""
+        """Test invalid features type"""
         response = client.post('/api/predict',
                              json={'features': 'not_a_list'})
         assert response.status_code in [400, 500, 503]
     
     def test_predict_wrong_feature_count(self, client, mock_model_loaded):
-        """测试特征数量不匹配"""
-        wrong_features = [1.0, 2.0, 3.0]  # 只有3个特征，应该需要78个
+        """Test feature count mismatch"""
+        wrong_features = [1.0, 2.0, 3.0]  # Only 3 features, should need 78
         response = client.post('/api/predict',
                              json={'features': wrong_features})
-        # 如果模型已加载，应该返回错误
+        # If model is loaded, should return error
         assert response.status_code in [200, 400, 500, 503]
 
 
 class TestAlertsAPI:
-    """测试警报API端点"""
+    """Test alerts API endpoint"""
     
     def test_get_alerts_success(self, client):
-        """测试获取警报成功"""
+        """Test get alerts successfully"""
         response = client.get('/api/alerts')
         assert response.status_code == 200
         data = json.loads(response.data)
         assert isinstance(data, list)
     
     def test_get_alerts_empty(self, client):
-        """测试获取空警报列表"""
+        """Test get empty alerts list"""
         response = client.get('/api/alerts')
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -170,17 +171,17 @@ class TestAlertsAPI:
 
 
 class TestHistoryAPI:
-    """测试历史记录API端点"""
+    """Test history API endpoint"""
     
     def test_get_history_success(self, client):
-        """测试获取历史记录成功"""
+        """Test get history successfully"""
         response = client.get('/api/history')
         assert response.status_code == 200
         data = json.loads(response.data)
         assert isinstance(data, list)
     
     def test_get_history_empty(self, client):
-        """测试获取空历史记录"""
+        """Test get empty history"""
         response = client.get('/api/history')
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -188,15 +189,15 @@ class TestHistoryAPI:
 
 
 class TestPerformanceAPI:
-    """测试性能指标API端点"""
+    """Test performance metrics API endpoint"""
     
     def test_get_performance_success(self, client):
-        """测试获取性能指标成功"""
+        """Test get performance metrics successfully"""
         response = client.get('/api/performance')
         assert response.status_code == 200
         data = json.loads(response.data)
         assert isinstance(data, dict)
-        # 检查是否包含预期的性能指标字段
+        # Check if expected performance metric fields are present
         expected_keys = ['accuracy', 'precision', 'recall', 'f1_score', 'auc']
         for key in expected_keys:
             if key in data:
@@ -204,40 +205,40 @@ class TestPerformanceAPI:
 
 
 class TestStreamAPI:
-    """测试流数据API端点"""
+    """Test stream data API endpoint"""
     
     def test_get_stream_success(self, client):
-        """测试获取流数据成功"""
+        """Test get stream data successfully"""
         response = client.get('/api/stream')
-        # 可能返回错误（如果攻击样本库未构建）或成功
+        # May return error (if attack sample library not built) or success
         assert response.status_code in [200, 404, 500]
         if response.status_code == 200:
             data = json.loads(response.data)
             assert 'status' in data
     
     def test_get_stream_with_label_filter(self, client):
-        """测试带标签过滤的流数据"""
+        """Test stream data with label filter"""
         response = client.get('/api/stream?label=DoS%20Hulk')
         assert response.status_code in [200, 404, 500]
     
     def test_get_stream_invalid_label(self, client):
-        """测试无效标签过滤"""
+        """Test invalid label filter"""
         response = client.get('/api/stream?label=NonExistentAttack')
         assert response.status_code in [200, 404, 500]
     
     def test_get_stream_duplicate_query_params(self, client):
-        """测试重复的查询参数"""
-        # 测试URL中重复的查询参数
+        """Test duplicate query parameters"""
+        # Test duplicate query parameters in URL
         response = client.get('/api/stream?label=DoS&label=PortScan')
-        # Flask会处理重复参数（保留最后一个或作为列表）
+        # Flask handles duplicate parameters (keeps last one or as list)
         assert response.status_code in [200, 404, 500]
 
 
 class TestRandomAPI:
-    """测试随机数据API端点"""
+    """Test random data API endpoint"""
     
     def test_get_random_success(self, client):
-        """测试获取随机数据成功"""
+        """Test get random data successfully"""
         response = client.get('/api/random')
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -249,35 +250,35 @@ class TestRandomAPI:
 
 
 class TestUploadAndRetrainAPI:
-    """测试上传和重训练API端点"""
+    """Test upload and retrain API endpoint"""
     
     def test_upload_no_files(self, client):
-        """测试没有文件的上传请求"""
+        """Test upload request without files"""
         response = client.post('/api/upload-and-retrain')
         assert response.status_code == 400
         data = json.loads(response.data)
         assert data['status'] == 'error'
     
     def test_upload_empty_files(self, client):
-        """测试空文件列表"""
+        """Test empty file list"""
         response = client.post('/api/upload-and-retrain',
                              data={'files': []})
         assert response.status_code == 400
     
     def test_upload_invalid_file_type(self, client):
-        """测试无效文件类型"""
+        """Test invalid file type"""
         data = {
             'files': (BytesIO(b'not csv content'), 'test.txt')
         }
         response = client.post('/api/upload-and-retrain',
                              data=data,
                              content_type='multipart/form-data')
-        # 应该返回400或忽略非CSV文件
+        # Should return 400 or ignore non-CSV files
         assert response.status_code in [400, 200]
     
     def test_upload_valid_csv(self, client):
-        """测试上传有效的CSV文件"""
-        # 创建测试CSV数据
+        """Test upload valid CSV file"""
+        # Create test CSV data
         test_data = {
             'Label': ['BENIGN', 'DDoS', 'BENIGN'],
             'Feature1': [1.0, 2.0, 3.0],
@@ -286,7 +287,7 @@ class TestUploadAndRetrainAPI:
         }
         df = pd.DataFrame(test_data)
         
-        # 保存为CSV字节流
+        # Save as CSV byte stream
         csv_buffer = BytesIO()
         df.to_csv(csv_buffer, index=False)
         csv_buffer.seek(0)
@@ -298,12 +299,12 @@ class TestUploadAndRetrainAPI:
         response = client.post('/api/upload-and-retrain',
                              data=data,
                              content_type='multipart/form-data')
-        # 可能成功或失败（取决于模型加载状态）
+        # May succeed or fail (depends on model loading status)
         assert response.status_code in [200, 400, 500]
     
     def test_upload_multiple_files(self, client):
-        """测试上传多个文件"""
-        # 创建两个测试CSV文件
+        """Test upload multiple files"""
+        # Create two test CSV files
         test_data1 = {
             'Label': ['BENIGN'],
             'Feature1': [1.0],
@@ -335,7 +336,7 @@ class TestUploadAndRetrainAPI:
         assert response.status_code in [200, 400, 500]
     
     def test_upload_csv_without_label_column(self, client):
-        """测试缺少Label列的CSV"""
+        """Test CSV without Label column"""
         test_data = {
             'Feature1': [1.0, 2.0],
             'Feature2': [3.0, 4.0]
@@ -359,36 +360,36 @@ class TestUploadAndRetrainAPI:
 
 
 class TestKeyDuplicateScenarios:
-    """专门测试key重复的各种场景"""
+    """Test various key duplication scenarios"""
     
     def test_json_duplicate_key_last_wins(self, client):
-        """测试JSON中重复key，最后一个值生效（Python dict行为）"""
-        # Python的dict会自动处理重复key，保留最后一个值
+        """Test JSON duplicate keys, last value wins (Python dict behavior)"""
+        # Python dict automatically handles duplicate keys, keeps last value
         json_data = {
             'features': [1, 2, 3],
-            'features': [4, 5, 6]  # 这个值会覆盖上面的
+            'features': [4, 5, 6]  # This value overwrites the above
         }
         
-        # 验证Python dict的行为
+        # Verify Python dict behavior
         assert json_data['features'] == [4, 5, 6]
         
         response = client.post('/api/predict',
                              json=json_data)
-        # 应该使用最后一个值
+        # Should use last value
         assert response.status_code in [200, 400, 500, 503]
     
     def test_multiple_duplicate_keys_in_request(self, client):
-        """测试请求中多个重复key"""
+        """Test multiple duplicate keys in request"""
         json_data = {
             'features': [1.0] * 78,
-            'features': [2.0] * 78,  # 重复
+            'features': [2.0] * 78,  # Duplicate
             'extra_param': 'value1',
-            'extra_param': 'value2',  # 重复
+            'extra_param': 'value2',  # Duplicate
             'another': 100,
-            'another': 200  # 重复
+            'another': 200  # Duplicate
         }
         
-        # 验证dict行为
+        # Verify dict behavior
         assert json_data['features'] == [2.0] * 78
         assert json_data['extra_param'] == 'value2'
         assert json_data['another'] == 200
@@ -398,18 +399,18 @@ class TestKeyDuplicateScenarios:
         assert response.status_code in [200, 400, 500, 503]
     
     def test_nested_duplicate_keys(self, client):
-        """测试嵌套结构中的重复key"""
+        """Test duplicate keys in nested structure"""
         json_data = {
             'features': [1.0] * 78,
             'metadata': {
                 'key1': 'value1',
-                'key1': 'value2',  # 嵌套中的重复key
+                'key1': 'value2',  # Duplicate key in nested structure
                 'key2': 100,
-                'key2': 200  # 嵌套中的重复key
+                'key2': 200  # Duplicate key in nested structure
             }
         }
         
-        # 验证嵌套dict行为
+        # Verify nested dict behavior
         assert json_data['metadata']['key1'] == 'value2'
         assert json_data['metadata']['key2'] == 200
         
@@ -418,12 +419,12 @@ class TestKeyDuplicateScenarios:
         assert response.status_code in [200, 400, 500, 503]
     
     def test_query_params_duplicate(self, client):
-        """测试URL查询参数重复"""
-        # Flask会处理重复的查询参数
+        """Test duplicate URL query parameters"""
+        # Flask handles duplicate query parameters
         response = client.get('/api/stream?label=DoS&label=PortScan&label=Bot')
         assert response.status_code in [200, 404, 500]
         
-        # 可以获取所有重复的参数值
+        # Can get all duplicate parameter values
         from flask import request as flask_request
         with app.test_request_context('/api/stream?label=DoS&label=PortScan'):
             labels = flask_request.args.getlist('label')
@@ -433,57 +434,57 @@ class TestKeyDuplicateScenarios:
 
 
 class TestEdgeCases:
-    """测试边界情况和异常处理"""
+    """Test edge cases and exception handling"""
     
     def test_very_large_feature_array(self, client):
-        """测试非常大的特征数组"""
+        """Test very large feature array"""
         large_features = [1.0] * 10000
         response = client.post('/api/predict',
                              json={'features': large_features})
         assert response.status_code in [200, 400, 500, 503]
     
     def test_empty_feature_array(self, client):
-        """测试空特征数组"""
+        """Test empty feature array"""
         response = client.post('/api/predict',
                              json={'features': []})
         assert response.status_code in [200, 400, 500, 503]
     
     def test_none_values_in_features(self, client):
-        """测试特征中包含None值"""
+        """Test features containing None values"""
         features = [1.0, None, 3.0] + [0.0] * 75
         response = client.post('/api/predict',
                              json={'features': features})
         assert response.status_code in [200, 400, 500, 503]
     
     def test_inf_values_in_features(self, client, mock_model_loaded):
-        """测试特征中包含Inf值"""
+        """Test features containing Inf values"""
         features = [float('inf'), float('-inf'), 3.0] + [0.0] * 75
         response = client.post('/api/predict',
                              json={'features': features})
-        # 应该能处理Inf值（代码中有replace逻辑）
+        # Should handle Inf values (code has replace logic)
         assert response.status_code in [200, 400, 500, 503]
     
     def test_nan_values_in_features(self, client, mock_model_loaded):
-        """测试特征中包含NaN值"""
+        """Test features containing NaN values"""
         features = [float('nan'), 2.0, 3.0] + [0.0] * 75
         response = client.post('/api/predict',
                              json={'features': features})
-        # 应该能处理NaN值（代码中有fillna逻辑）
+        # Should handle NaN values (code has fillna logic)
         assert response.status_code in [200, 400, 500, 503]
     
     def test_unicode_in_json(self, client):
-        """测试JSON中包含Unicode字符"""
+        """Test JSON containing Unicode characters"""
         json_data = {
             'features': [1.0] * 78,
-            'message': '测试中文 🚀'
+            'message': 'Test Chinese 🚀'
         }
         response = client.post('/api/predict',
                              json=json_data)
         assert response.status_code in [200, 400, 500, 503]
     
     def test_special_characters_in_keys(self, client):
-        """测试key中包含特殊字符"""
-        # 注意：虽然features是必需的，但可以测试其他key
+        """Test keys containing special characters"""
+        # Note: although features is required, can test other keys
         json_data = {
             'features': [1.0] * 78,
             'key-with-dash': 'value',
@@ -496,38 +497,38 @@ class TestEdgeCases:
 
 
 class TestDataValidation:
-    """测试数据验证功能"""
+    """Test data validation functionality"""
     
     def test_feature_count_validation(self, client, mock_model_loaded):
-        """测试特征数量验证"""
-        # 测试特征数量不匹配
-        wrong_count_features = [1.0] * 50  # 应该是78个
+        """Test feature count validation"""
+        # Test feature count mismatch
+        wrong_count_features = [1.0] * 50  # Should be 78
         response = client.post('/api/predict',
                              json={'features': wrong_count_features})
-        # 如果模型已加载，应该返回错误
+        # If model is loaded, should return error
         assert response.status_code in [200, 400, 500, 503]
     
     def test_feature_type_validation(self, client):
-        """测试特征类型验证"""
-        # 测试混合类型
+        """Test feature type validation"""
+        # Test mixed types
         mixed_features = [1, 2.0, '3', [4], None] + [0.0] * 73
         response = client.post('/api/predict',
                              json={'features': mixed_features})
         assert response.status_code in [200, 400, 500, 503]
     
     def test_malformed_json(self, client):
-        """测试格式错误的JSON"""
+        """Test malformed JSON"""
         response = client.post('/api/predict',
-                             data='{"features": [1, 2, 3}',  # 缺少闭合括号
+                             data='{"features": [1, 2, 3}',  # Missing closing bracket
                              content_type='application/json')
         assert response.status_code in [400, 500]
 
 
 class TestConcurrency:
-    """测试并发场景"""
+    """Test concurrency scenarios"""
     
     def test_concurrent_alerts_access(self, client):
-        """测试并发访问警报"""
+        """Test concurrent access to alerts"""
         import threading
         
         results = []
@@ -542,11 +543,11 @@ class TestConcurrency:
         for t in threads:
             t.join()
         
-        # 所有请求应该都成功
+        # All requests should succeed
         assert all(status == 200 for status in results)
 
 
 if __name__ == '__main__':
-    # 运行测试
+    # Run tests
     pytest.main([__file__, '-v', '--tb=short'])
 
