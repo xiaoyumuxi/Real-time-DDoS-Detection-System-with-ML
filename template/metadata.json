@@ -1,5 +1,0 @@
-{
-  "name": "DDoS Detection System",
-  "description": "A full-stack implementation for DDoS detection using Random Forest, featuring C-Level reporting, real-time alerting, and model retraining capabilities.",
-  "requestFramePermissions": []
-}
