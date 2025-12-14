@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CyberDefense IDS Shield</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              gray: {
+                50: '#f9fafb',
+                100: '#f4f6f9', // Your custom bg
+                800: '#333333',
+              },
+              primary: {
+                DEFAULT: '#0d6efd',
+                hover: '#0b5ed7',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Custom scrollbar to match original design */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #e9ecef; }
+      ::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 4px; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "vue": "https://esm.sh/vue@^3.5.25"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 text-gray-800 antialiased font-sans">
+    <div id="app"></div>
+    <script type="module" src="/main.ts"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
