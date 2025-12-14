@@ -65,7 +65,9 @@ const addLog = (res: PredictionResult) => {
     message: `DETECTED: `,
     label: res.predicted_label,
     confidence: `(Conf: ${(res.confidence * 100).toFixed(1)}%)`,
-    type: res.threat_level === 'None' ? 'success' : 'danger'
+    type: res.threat_level === 'None' ? 'success' : 'danger',
+    threat_level: res.threat_level,
+    probabilities: res.probabilities
   };
   logs.value.unshift(newLog); // Add to top
 };
@@ -185,8 +187,8 @@ onMounted(() => {
       <div class="lg:col-span-6 flex flex-col gap-4 min-h-0">
         <!-- Result Card -->
         <div class="bg-white border border-gray-200 shadow-sm rounded-lg p-5">
-          <div class="flex justify-between items-center">
-            <div>
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
               <h6 class="text-gray-400 text-xs uppercase font-bold">Last Detection Result:</h6>
               <h3 
                 class="text-3xl font-bold mt-1"
@@ -199,9 +201,20 @@ onMounted(() => {
               >
                 {{ predictionResult?.predicted_label || 'Waiting for input...' }}
               </h3>
+              <!-- 显示置信度和时间戳 -->
+              <div v-if="predictionResult" class="mt-2 text-sm text-gray-600 space-y-1">
+                <div>
+                  <span class="font-semibold">Confidence:</span> 
+                  <span class="font-mono">{{ (predictionResult.confidence * 100).toFixed(2) }}%</span>
+                </div>
+                <div v-if="predictionResult.timestamp">
+                  <span class="font-semibold">Detected at:</span> 
+                  <span class="font-mono">{{ predictionResult.timestamp }}</span>
+                </div>
+              </div>
             </div>
             <span 
-              class="px-4 py-2 rounded-full text-sm font-semibold shadow-sm"
+              class="px-4 py-2 rounded-full text-sm font-semibold shadow-sm whitespace-nowrap"
               :class="{
                 'bg-gray-200 text-gray-700': !predictionResult,
                 'bg-green-100 text-green-800': predictionResult?.threat_level === 'None' || predictionResult?.threat_level === 'Low',
@@ -212,6 +225,28 @@ onMounted(() => {
               Status: {{ predictionResult?.threat_level || 'Idle' }}
             </span>
           </div>
+          <!-- 概率分布分析 -->
+          <div v-if="predictionResult?.probabilities && Object.keys(predictionResult.probabilities).length > 1" class="mt-4 pt-4 border-t border-gray-200">
+            <h6 class="text-gray-500 text-xs uppercase font-bold mb-2">Probability Distribution:</h6>
+            <div class="space-y-2">
+              <div v-for="(prob, label) in predictionResult.probabilities" :key="label" class="flex items-center gap-3">
+                <span class="text-xs font-medium w-36 truncate" :title="label">{{ label }}</span>
+                <div class="flex-1 bg-gray-200 rounded-full h-3">
+                  <div 
+                    class="h-3 rounded-full transition-all"
+                    :class="{
+                      'bg-green-500': predictionResult.predicted_label === label && predictionResult.threat_level === 'None',
+                      'bg-orange-500': predictionResult.predicted_label === label && predictionResult.threat_level === 'Medium',
+                      'bg-red-500': predictionResult.predicted_label === label && predictionResult.threat_level === 'High',
+                      'bg-blue-400': predictionResult.predicted_label !== label
+                    }"
+                    :style="{ width: `${prob * 100}%` }"
+                  ></div>
+                </div>
+                <span class="text-xs font-mono w-14 text-right">{{ (prob * 100).toFixed(1) }}%</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Log Console -->
@@ -220,18 +255,39 @@ onMounted(() => {
             <i class="fas fa-terminal text-primary"></i> Live Threat Logs
           </h5>
           <div class="bg-gray-50 border border-gray-200 rounded p-4 flex-1 overflow-y-auto font-mono text-sm">
-            <div v-for="log in logs" :key="log.id" class="mb-1" :class="log.type === 'success' ? 'text-green-600' : (log.type === 'info' ? 'text-gray-500' : 'text-red-600')">
-              <span class="opacity-70">[{{ log.timestamp }}]</span> 
-              <span v-html="log.message"></span>
-              <b v-if="log.label">{{ log.label }}</b>
-              <span v-if="log.confidence" class="ml-1 opacity-80">{{ log.confidence }}</span>
+            <div v-for="log in logs" :key="log.id" class="mb-3 pb-2 border-b border-gray-200 last:border-b-0" :class="log.type === 'success' ? 'text-green-600' : (log.type === 'info' ? 'text-gray-500' : 'text-red-600')">
+              <!-- 主要信息行 -->
+              <div class="mb-1">
+                <span class="opacity-70">[{{ log.timestamp }}]</span> 
+                <span v-html="log.message"></span>
+                <b v-if="log.label">{{ log.label }}</b>
+                <span v-if="log.confidence" class="ml-1 opacity-80">{{ log.confidence }}</span>
+                <span v-if="log.threat_level" class="ml-2 px-2 py-0.5 rounded text-xs font-semibold" 
+                  :class="{
+                    'bg-green-100 text-green-800': log.threat_level === 'None' || log.threat_level === 'Low',
+                    'bg-orange-100 text-orange-800': log.threat_level === 'Medium',
+                    'bg-red-100 text-red-800': log.threat_level === 'High'
+                  }">
+                  {{ log.threat_level }}
+                </span>
+              </div>
+              <!-- 概率分布信息 -->
+              <div v-if="log.probabilities && Object.keys(log.probabilities).length > 1" class="ml-6 text-xs opacity-70 space-y-0.5">
+                <div v-for="(prob, label) in log.probabilities" :key="label" class="flex items-center gap-2">
+                  <span class="w-32 truncate">{{ label }}:</span>
+                  <div class="flex-1 bg-gray-200 rounded-full h-2 max-w-[150px]">
+                    <div class="bg-current h-2 rounded-full transition-all" :style="{ width: `${prob * 100}%` }"></div>
+                  </div>
+                  <span class="w-12 text-right">{{ (prob * 100).toFixed(1) }}%</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Right: Retrain & Chart -->
-      <div class="lg:col-span-3 flex flex-col gap-4">
+      <div class="lg:col-span-3 flex flex-col gap-4 h-full">
         <!-- Retrain Box -->
         <div class="bg-white border border-gray-200 shadow-sm rounded-lg p-5">
           <h5 class="text-gray-800 border-b border-gray-200 pb-2 mb-3 font-bold flex items-center gap-2">
@@ -257,7 +313,7 @@ onMounted(() => {
         </div>
 
         <!-- Radar Chart -->
-        <div class="flex-1 min-h-0">
+        <div class="flex-1 min-h-[300px]">
           <RadarChart :data="performanceData" />
         </div>
       </div>

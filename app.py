@@ -180,12 +180,24 @@ def predict(raw_input_data):
         max_proba = np.max(prediction_proba)
         threat_level = get_threat_level(prediction_label, max_proba)
 
+        # 获取所有类别的概率分布（前5个最高概率）
+        proba_dict = {}
+        classes = LE.classes_
+        for i, prob in enumerate(prediction_proba):
+            if prob > 0.01:  # 只显示概率大于1%的
+                proba_dict[classes[i]] = float(prob)
+        
+        # 按概率降序排序，取前5个
+        top_probabilities = dict(sorted(proba_dict.items(), key=lambda x: x[1], reverse=True)[:5])
+
         return {
             "status": "success",
             "predicted_label": prediction_label,
             "confidence": float(max_proba),
             "encoded_value": int(prediction_encoded),
-            "threat_level": threat_level
+            "threat_level": threat_level,
+            "probabilities": top_probabilities,  # 所有类别的概率分布
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 添加时间戳
         }
     except Exception as e:
         logger.error(f"Prediction logic error: {e}")
