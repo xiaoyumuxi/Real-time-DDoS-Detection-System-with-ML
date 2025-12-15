@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ CyberDefense IDS Shield
+# ️ CyberDefense IDS Shield
 
 ### Real-time DDoS Detection System with Machine Learning
 
@@ -16,17 +16,17 @@
 
 ---
 
-## 🌟 Features
+## Features
 
-- **🎯 High Accuracy Detection**: 99.93% accuracy in detecting DDoS attacks
-- **⚡ Real-time Analysis**: Instant network traffic classification
-- **📊 Interactive Dashboard**: Modern Vue.js frontend with live metrics
-- **🔄 Continuous Learning**: Support for model retraining with new data
-- **🌐 RESTful API**: Easy integration with existing systems
-- **📈 Visual Analytics**: Comprehensive charts and statistics
-- **🔍 Multi-class Detection**: Identifies various DDoS attack types (Hulk, Slowloris, GoldenEye, etc.)
+- ** High Accuracy Detection**: 99.93% accuracy in detecting DDoS attacks
+- ** Real-time Analysis**: Instant network traffic classification
+- ** Interactive Dashboard**: Modern Vue.js frontend with live metrics
+- ** Continuous Learning**: Support for model retraining with new data
+- ** RESTful API**: Easy integration with existing systems
+- ** Visual Analytics**: Comprehensive charts and statistics
+- ** Multi-class Detection**: Identifies various DDoS attack types (Hulk, Slowloris, GoldenEye, etc.)
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 <div align="center">
 
@@ -40,7 +40,7 @@
 
 </div>
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -52,16 +52,16 @@ npm 8.x+
 Git
 ```
 
-### ⚙️ Installation & Setup
+###  Installation & Setup
 
-#### 1️⃣ Clone the Repository
+#### 1 Clone the Repository
 
 ```bash
 git clone https://github.com/yourusername/SCC252.git
 cd SCC252
 ```
 
-#### 2️⃣ Backend Setup (Python/Flask)
+#### 2 Backend Setup (Python/Flask)
 
 <details>
 <summary><b>Step-by-step Backend Configuration</b></summary>
@@ -100,7 +100,7 @@ pip install -r requirements.txt
 
 </details>
 
-#### 3️⃣ Prepare Training Data
+#### 3 Prepare Training Data
 
 ##### Download Dataset
 
@@ -122,7 +122,7 @@ SCC252/
 │   └── Wednesday-workingHours.pcap_ISCX.csv
 ```
 
-#### 4️⃣ Train the Model
+#### 4 Train the Model
 
 ```bash
 python trainning.py
@@ -131,18 +131,17 @@ python trainning.py
 <details>
 <summary>Expected output</summary>
 ```
-正在读取数据...
-数据读取成功，原始形状: (692703, 79)
-正在清理数据...
-清理后形状: (692703, 79)
-正在进行多分类标签编码...
-...
-测试集整体准确率: 0.9993
-测试集整体精确度: 0.9993
-测试集[BENIGN]召回率: 0.9993
-测试集假阳性率: 0.0005
-测试集AUC: 0.9999
-🎉 任务完成！
+Data is being read...
+Data reading is successful. Original shape: (692703, 79)
+Data cleaning is underway...
+Cleaned shape: (692703, 79)
+Multiclass label encoding is in progress... ...
+Overall accuracy of the test set: 0.9993
+Overall precision of the test set: 0.9993
+Recall rate of the test set [BENIGN]: 0.9993
+False positive rate of the test set: 0.0005
+AUC of the test set: 0.9999
+Task completed!
 ```
 
 **Generated files in `models/` directory:**
@@ -154,7 +153,7 @@ python trainning.py
 
 </details>
 
-#### 5️⃣ Start Backend Server
+#### 5 Start Backend Server
 
 ```bash
 python app.py
@@ -164,8 +163,8 @@ python app.py
 ```
 INFO:werkzeug:WARNING: This is a development server.
  * Running on http://127.0.0.1:5050
-INFO:app:✅ Model components loaded successfully.
-INFO:app:✅ Performance metrics loaded.
+INFO:app: Model components loaded successfully.
+INFO:app: Performance metrics loaded.
 ```
 
 **Verify backend is running:**
@@ -174,7 +173,7 @@ curl http://127.0.0.1:5050/health
 # Expected: {"status":"healthy","model_loaded":true}
 ```
 
-#### 6️⃣ Frontend Setup (Vue.js)
+#### 6 Frontend Setup (Vue.js)
 
 ##### Navigate to Frontend Directory
 
@@ -202,18 +201,18 @@ VITE v6.2.0  ready in 500 ms
 ➜  Network: use --host to expose
 ```
 
-#### 7️⃣ Access the Application
+#### 7 Access the Application
 
-🌐 **Frontend**: Open browser and navigate to `http://localhost:5173`  
-🔌 **Backend API**: `http://127.0.0.1:5050`
+ **Frontend**: Open browser and navigate to `http://localhost:5173`  
+ **Backend API**: `http://127.0.0.1:5050`
 
 **Dashboard Features:**
-- 📊 Performance metrics visualization
-- 🔴 Real-time detection interface
-- 📜 Alert history panel
-- 🎯 Model statistics radar chart
+-  Performance metrics visualization
+-  Real-time detection interface
+-  Alert history panel
+-  Model statistics radar chart
 
-#### 8️⃣ Verify Setup
+#### 8 Verify Setup
 
 ##### Test Prediction Endpoint
 
@@ -232,7 +231,7 @@ python run_sample.py
 
 **Expected output:**
 ```
---- 模拟网站/API 接口返回结果 ---
+--- Simulated website/API interface return results ---
 {
     "status": "success",
     "predicted_label": "BENIGN",
@@ -244,16 +243,16 @@ python run_sample.py
 
 ---
 
-## 📖 Usage Guide
+##  Usage Guide
 
-### 🧪 Running Sample Detection
+###  Running Sample Detection
 
 ```bash
 cd examples
 python run_sample.py
 ```
 
-### 🔮 Making Predictions via API
+###  Making Predictions via API
 
 ```python
 import requests
@@ -273,7 +272,7 @@ print(f"Confidence: {result['confidence']}")
 print(f"Threat Level: {result['threat_level']}")
 ```
 
-### 🔄 Retraining the Model
+###  Retraining the Model
 
 ```bash
 # Upload new CSV data via web interface
@@ -282,7 +281,7 @@ curl -X POST http://127.0.0.1:5050/api/upload-and-retrain \
   -F "files=@new_data.csv"
 ```
 
-### 📈 Viewing Detection History
+###  Viewing Detection History
 
 Access the frontend dashboard at `http://localhost:5173` to view:
 - Real-time attack detection
@@ -292,9 +291,9 @@ Access the frontend dashboard at `http://localhost:5173` to view:
 
 ---
 
-## 🔌 API Documentation
+##  API Documentation
 
-### 📡 Endpoints Overview
+###  Endpoints Overview
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -307,7 +306,7 @@ Access the frontend dashboard at `http://localhost:5173` to view:
 | GET | `/api/random` | Generate random test data |
 | POST | `/api/upload-and-retrain` | Retrain model with new data |
 
-### 📝 Detailed API Reference
+###  Detailed API Reference
 
 #### `POST /api/predict`
 
@@ -353,7 +352,7 @@ Get current model performance metrics.
 
 ---
 
-## 🏗️ Architecture
+## 🏗 Architecture
 
 ### System Architecture
 
@@ -389,7 +388,7 @@ graph LR
 - Multi-class classification
 - CICIDS2017 dataset
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 SCC252/
@@ -423,7 +422,7 @@ SCC252/
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -433,17 +432,17 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Dataset**: [CICIDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) by Canadian Institute for Cybersecurity
 - **ML Framework**: [scikit-learn](https://scikit-learn.org/)
 - **Frontend Framework**: [Vue.js](https://vuejs.org/)
 
-## 📧 Contact
+##  Contact
 
 For questions or feedback, please open an issue on GitHub.
 
@@ -451,8 +450,7 @@ For questions or feedback, please open an issue on GitHub.
 
 <div align="center">
 
-**⭐ Star this repository if you find it helpful!**
+** Star this repository if you find it helpful!**
 
-Made with ❤️ for cybersecurity
 
 </div>

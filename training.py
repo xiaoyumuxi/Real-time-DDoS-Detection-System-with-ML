@@ -148,5 +148,5 @@ joblib.dump(scaler, scaler_filename)
 joblib.dump(le, encoder_filename)
 joblib.dump(FEATURE_COLUMNS, feature_col)
 
-print(f"🎉 Task complete!")
+print(f" Task complete!")
 print(f"Model and preprocessors saved as:\n- Model: {model_filename}\n- Scaler: {scaler_filename}\n- Encoder: {encoder_filename}\n- Features: {feature_col}")

@@ -8,7 +8,7 @@ MarkupSafe
 Werkzeug
 blinker
 
-# Data Science & Math (最容易出问题的部分)
+# Data Science & Math
 numpy
 pandas
 scikit-learn

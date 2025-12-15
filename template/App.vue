@@ -20,10 +20,10 @@ const logs = ref<LogEntry[]>([
 ]);
 const fileInput = ref<HTMLInputElement | null>(null);
 
-// --- Realtime intensity (10s sliding window, ✅ BENIGN 不计入) ---
+// --- Realtime intensity (10s sliding window,  BENIGN not account) ---
 const isAttackRunning = ref(false);
 const windowMs = ref(10000);
-const realtimeCount = ref(0); // ✅ 只统计非BENIGN次数
+const realtimeCount = ref(0); //  Count only the occurrences that are not BENIGN.
 const realtimeLevel = ref<RealtimeLevel>('Low');
 const streamRunId = ref(0);
 
@@ -37,7 +37,7 @@ const calcLevel = (count: number, thresholds?: { low_max: number; medium_max: nu
   return 'High';
 };
 
-// ✅ 展示用 threat：攻击运行时用 realtimeLevel，否则用模型 threat_level
+//  For display purposes, use "threat"; for runtime attacks, use "realtimeLevel", otherwise use the model's "threat_level".
 const displayThreat = computed(() => {
   if (isAttackRunning.value) return realtimeLevel.value;
   return (predictionResult.value?.threat_level ?? 'Idle') as any;
@@ -83,7 +83,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
     const data: any = await api.getTrafficData(type);
     const stream = Array.isArray(data?.stream) ? data.stream : null;
 
-    // --- ATTACK: play a 10s plan, update intensity in real time (✅ BENIGN 不计入) ---
+    // --- ATTACK: play a 10s plan, update intensity in real time ( BENIGN not account) ---
     if (type === 'attack' && stream && stream.length > 0) {
       isAttackRunning.value = true;
 
@@ -91,7 +91,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
       const winSec = Number(data.time_window_seconds ?? 10);
       windowMs.value = Math.max(1000, winSec * 1000);
 
-      // ✅ 只记录“非BENIGN”的事件时间戳
+      // Only record the event timestamps that are not "BENIGN".
       const nonBenignTimes: number[] = [];
       realtimeCount.value = 0;
       realtimeLevel.value = 'Low';
@@ -103,7 +103,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
         type: 'info'
       });
 
-      // ✅ 定时器：处理衰减（只对 nonBenignTimes）
+      // Timer: Handles attenuation (only for nonBenignTimes)
       const refreshInterval = 200;
       const intensityTimer = setInterval(() => {
         const now = Date.now();
@@ -122,7 +122,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
 
       const start = Date.now();
 
-      // ✅ 按 at_ms 定点触发
+      // Triggered at the point of "at_ms"
       for (const sample of stream) {
         if (streamRunId.value !== myRun) break;
 
@@ -130,7 +130,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
         const wait = Math.max(0, target - Date.now());
         await sleep(wait);
 
-        // 预测（保持原流程）
+        // Forecast (Maintain the original process)
         const result = await api.predict(sample.features);
 
         predictionResult.value = {
@@ -139,7 +139,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
         };
         addLog(result);
 
-        // ✅ BENIGN 不计入“10秒内攻击次数”
+        // BENIGN is not included in the "number of attacks within 10 seconds"
         const pred = String(result.predicted_label ?? '').trim().toUpperCase();
         const isBenign = (pred === 'BENIGN');
 
@@ -147,7 +147,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
           const now = Date.now();
           nonBenignTimes.push(now);
 
-          // 立刻刷新一次（不等定时器）
+          // Refresh immediately (without waiting for the timer)
           while (nonBenignTimes.length && now - nonBenignTimes[0] > windowMs.value) nonBenignTimes.shift();
           realtimeCount.value = nonBenignTimes.length;
 
@@ -173,7 +173,7 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
         type: 'info'
       });
 
-      // ✅ 等到 10 秒窗口自然衰减到 0（只看非BENIGN）
+      // Wait until the 10-second window naturally decays to 0 (excluding the BENIGN cases)
       const decayStart = Date.now();
       while (streamRunId.value === myRun) {
         const now = Date.now();
@@ -206,8 +206,8 @@ const simulateTraffic = async (type: 'normal' | 'attack' | 'random') => {
   } catch (error: any) {
     console.error(error);
     const msg = error.name === 'AbortError'
-      ? "⚠️ Request Timed Out! Server took too long."
-      : `❌ Error: ${error.message}`;
+      ? "Request Timed Out! Server took too long."
+      : `Error: ${error.message}`;
     alert(msg);
 
     isAttackRunning.value = false;
@@ -229,13 +229,13 @@ const handleRetrain = async () => {
   isRetraining.value = true;
   try {
     const res = await api.retrain(file);
-    alert("✅ " + res.message);
+    alert(" " + res.message);
     await loadPerformance();
     if (fileInput.value) fileInput.value.value = '';
   } catch (error: any) {
     const msg = error.name === 'AbortError'
-      ? "⚠️ Training Timeout! Dataset might be too large."
-      : `❌ Training Failed: ${error.message}`;
+      ? " Training Timeout! Dataset might be too large."
+      : ` Training Failed: ${error.message}`;
     alert(msg);
   } finally {
     isRetraining.value = false;
@@ -374,7 +374,7 @@ onMounted(() => {
             </span>
           </div>
 
-          <!-- 概率分布分析 -->
+          <!-- Probability distribution analysis -->
           <div v-if="predictionResult?.probabilities && Object.keys(predictionResult.probabilities).length > 1" class="mt-4 pt-4 border-t border-gray-200">
             <h6 class="text-gray-500 text-xs uppercase font-bold mb-2">Probability Distribution:</h6>
             <div class="space-y-2">

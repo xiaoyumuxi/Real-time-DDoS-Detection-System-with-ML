@@ -476,7 +476,7 @@ class TestEdgeCases:
         """Test JSON containing Unicode characters"""
         json_data = {
             'features': [1.0] * 78,
-            'message': 'Test Chinese 🚀'
+            'message': 'Test Chinese '
         }
         response = client.post('/api/predict',
                              json=json_data)

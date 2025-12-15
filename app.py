@@ -103,16 +103,16 @@ def load_model_components():
             try:
                 with open(PERFORMANCE_PATH, 'r') as f:
                     PERFORMANCE_METRICS = json.load(f)
-                logger.info("✅ Performance metrics loaded.")
+                logger.info(" Performance metrics loaded.")
             except Exception as e:
-                logger.warning(f"⚠️ Found metrics file but failed to load: {e}")
+                logger.warning(f" Found metrics file but failed to load: {e}")
         else:
-            logger.warning("⚠️ No performance metrics file found (ddos_performance.json). Metrics will be 0.")
+            logger.warning(" No performance metrics file found (ddos_performance.json). Metrics will be 0.")
 
-        logger.info("✅ Model components loaded successfully.")
+        logger.info(" Model components loaded successfully.")
         return True
     except Exception as e:
-        logger.error(f"❌ Error loading model files: {e}")
+        logger.error(f" Error loading model files: {e}")
         return False
 
 
@@ -455,15 +455,15 @@ import random
 import time
 from flask import request, jsonify
 
-# 固定“攻击间隔”
+# Set the "attack interval"
 MODE_INTERVAL_MS = {
-    "Low": 2000,     # 2秒一次
-    "Medium": 1000,  # 1秒一次
-    "High": 500,     # 0.5秒一次（=1秒两次）
+    "Low": 2000,     # Once every 2 seconds
+    "Medium": 1000,  # Once every 1 seconds
+    "High": 500,     # Once every 0.5 seconds
 }
 
-# 前端根据“最近10秒次数”分级用的阈值
-# 10秒内：Low=5次，Medium=10次，High=20次
+# The threshold used by the front end for classification based on "the number of occurrences in the last 10 seconds"
+# Within 10 seconds: Low = 5 times, Medium = 10 times, High = 20 times
 LEVEL_THRESHOLDS = {
     "low_max": 5,      # 0~5 => Low
     "medium_max": 10,  # 6~10 => Medium
@@ -682,7 +682,7 @@ def upload_and_retrain():
 # Application Entry Point
 if __name__ == '__main__':
     if not load_model_components():
-        logger.warning("⚠️ Warning: Model components could not be loaded at startup.")
-        logger.warning("   Please ensure 'trainning.py' has been run and generated files in './models/.")
+        logger.warning(" Warning: Model components could not be loaded at startup.")
+        logger.warning("   Please ensure 'training.py' has been run and generated files in './models/.")
 
     app.run(host='127.0.0.1', port=5050, debug=True)

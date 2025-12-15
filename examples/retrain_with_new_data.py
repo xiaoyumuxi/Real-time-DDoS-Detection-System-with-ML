@@ -39,18 +39,18 @@ def retrain_model(csv_file, host='127.0.0.1', port=5000):
     
     # Validate file exists
     if not csv_path.exists():
-        print(f"❌ Error: File not found {csv_file}")
+        print(f"Error: File not found {csv_file}")
         return None
     
     if not csv_file.endswith('.csv'):
-        print(f"❌ Error: File must be CSV format {csv_file}")
+        print(f"Error: File must be CSV format {csv_file}")
         return None
     
     # Build API URL
     url = f'http://{host}:{port}/api/upload-and-retrain'
     
-    print(f"📤 Uploading file: {csv_file}")
-    print(f"🔗 API endpoint: {url}")
+    print(f"Uploading file: {csv_file}")
+    print(f"API endpoint: {url}")
     
     try:
         # Open file and send POST request
@@ -61,28 +61,28 @@ def retrain_model(csv_file, host='127.0.0.1', port=5000):
         # Process response
         if response.status_code == 200:
             data = response.json()
-            print(f"\n✅ Retraining successful!")
+            print(f"\nRetraining successful!")
             print(f"Status: {data.get('status')}")
             print(f"Message: {data.get('message')}")
             
             # Display statistics
             if 'stats' in data:
                 stats = data['stats']
-                print(f"\n📊 Data statistics:")
+                print(f"\nData statistics:")
                 print(f"  • Total samples: {stats.get('total_samples', 'N/A')}")
                 print(f"  • Unique labels: {len(stats.get('unique_labels', []))}")
                 print(f"  • New labels: {stats.get('new_labels_count', 0)}"))
                 if stats.get('new_labels'):
                     print(f"  • New labels added: {', '.join(stats['new_labels'])}")
                 
-                print(f"\n📋 Label distribution:")
+                print(f"\nLabel distribution:")
                 for label, count in stats.get('label_distribution', {}).items():
                     print(f"  • {label}: {count}")
             
             # Display performance metrics
             if 'performance' in data:
                 perf = data['performance']
-                print(f"\n📈 Model performance metrics:")
+                print(f"\nModel performance metrics:")
                 print(f"  • Accuracy: {perf.get('accuracy', 'N/A'):.4f}")
                 print(f"  • Precision: {perf.get('precision', 'N/A'):.4f}")
                 print(f"  • Recall: {perf.get('recall', 'N/A'):.4f}")
@@ -91,7 +91,7 @@ def retrain_model(csv_file, host='127.0.0.1', port=5000):
             return data
         
         else:
-            print(f"\n❌ Request failed, status code: {response.status_code}"))
+            print(f"\nRequest failed, status code: {response.status_code}"))
             try:
                 error_data = response.json()
                 print(f"Error message: {error_data.get('message', 'Unknown error')}")
@@ -102,17 +102,17 @@ def retrain_model(csv_file, host='127.0.0.1', port=5000):
             return None
     
     except requests.exceptions.ConnectionError:
-        print(f"\n❌ Connection error: Cannot connect to {url}")
+        print(f"\nConnection error: Cannot connect to {url}")
         print(f"   Please ensure Flask server is running (python app.py)"))
         return None
     
     except requests.exceptions.Timeout:
-        print(f"\n❌ Timeout: Request took too long (300s)")
+        print(f"\nTimeout: Request took too long (300s)")
         print(f"   CSV file may be too large, try using a smaller file"))
         return None
     
     except Exception as e:
-        print(f"\n❌ Error occurred: {str(e)}"))
+        print(f"\nError occurred: {str(e)}"))
         return None
 
 

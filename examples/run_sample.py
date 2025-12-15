@@ -24,15 +24,15 @@ if __name__ == '__main__':
 
     if result.get('status') == 'success':
         if result.get('predicted_label', '').upper() == 'BENIGN':
-            print("\n🟢 Prediction: Normal traffic (BENIGN)")
+            print("\nPrediction: Normal traffic (BENIGN)")
         else:
-            print(f"\n🔴 Prediction: Malicious attack detected! Type: {result.get('predicted_label')}")
+            print(f"\nPrediction: Malicious attack detected! Type: {result.get('predicted_label')}")
             attack_types = {
                 'DDOS': 'Distributed Denial of Service',
                 'DOS': 'Denial of Service',
                 'PORTSCAN': 'Port Scan Attack',
                 'BOT': 'Botnet Activity',
-                'INFLITRATION': 'Infiltration Attack',
+                'INFILTRATION': 'Infiltration Attack',
                 'BRUTEFORCE': 'Brute Force Attack',
                 'SQLINJECTION': 'SQL Injection',
                 'XSS': 'Cross-Site Scripting',
