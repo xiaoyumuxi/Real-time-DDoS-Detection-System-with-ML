@@ -1,5 +1,5 @@
 {
-  "name": "DDoS Detection System",
-  "description": "A full-stack implementation for DDoS detection using Random Forest, featuring C-Level reporting, real-time alerting, and model retraining capabilities.",
+  "name": "CyberDefense IDS Shield",
+  "description": "A Vue 3 dashboard for Real-time Network Traffic Analysis & Threat Intelligence using Tailwind CSS and Chart.js.",
   "requestFramePermissions": []
 }

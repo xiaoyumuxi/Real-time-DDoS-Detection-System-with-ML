@@ -1,220 +1,458 @@
-# DDoS Detection System
+<div align="center">
 
-A real-time DDoS attack detection system using machine learning with a React frontend and Flask backend.
+# 🛡️ CyberDefense IDS Shield
 
-## Project Structure
+### Real-time DDoS Detection System with Machine Learning
 
-- `template/`: React frontend application
-- `app.py`: Flask backend server (contains all prediction and retraining logic)
-- `training.py`: Model training script for initial training
-- `examples/`: Example scripts for prediction and retraining
-- `models/`: Trained model components (joblib files)
-- `data/`: Dataset files (CSV)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.x-green.svg)](https://vuejs.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0+-lightgrey.svg)](https://flask.palletsprojects.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Setup Instructions
+[Features](#-features) • [Quick Start](#-quick-start) • [API Documentation](#-api-documentation) • [Performance](#-performance-metrics) • [Architecture](#-architecture)
 
-1. Create a virtual environment and install Python dependencies:
-   ```
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1    # Windows PowerShell
-   # or source .venv/bin/activate  # Unix/Linux
-   
-   python -m pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
+</div>
 
-2. Train the model (if not already done):
-   ```
-   python training.py
-   ```
+---
 
-3. Start the Flask backend server:
-   ```
-   python app.py
-   ```
+## 🌟 Features
 
-4. In a new terminal, navigate to the template directory and install Node dependencies:
-   ```
-   cd template
-   npm install
-   npm run dev
-   ```
+- **🎯 High Accuracy Detection**: 99.93% accuracy in detecting DDoS attacks
+- **⚡ Real-time Analysis**: Instant network traffic classification
+- **📊 Interactive Dashboard**: Modern Vue.js frontend with live metrics
+- **🔄 Continuous Learning**: Support for model retraining with new data
+- **🌐 RESTful API**: Easy integration with existing systems
+- **📈 Visual Analytics**: Comprehensive charts and statistics
+- **🔍 Multi-class Detection**: Identifies various DDoS attack types (Hulk, Slowloris, GoldenEye, etc.)
 
-## API Endpoints
+## 📊 Performance Metrics
 
-### Prediction Endpoints
-- **POST `/api/predict`** - Make a prediction based on provided features
-  - Body: `{"features": [v1, v2, ..., v78]}`
-  - Response: `{"status": "success", "predicted_label": "...", "confidence": 0.99, "threat_level": "High"}`
+<div align="center">
 
-### Data Generation Endpoints
-- **GET `/api/sample`** - Get sample feature data with feature names
-- **GET `/api/random`** - Generate random feature data for testing
+| Metric | Score |
+|--------|-------|
+| **Accuracy** | 99.93% |
+| **Precision** | 99.93% |
+| **Recall** | 99.93% |
+| **False Positive Rate** | 0.05% |
+| **AUC-ROC** | 99.99% |
 
-### Monitoring Endpoints
-- **GET `/api/alerts`** - Get recent security alerts (last 50)
-- **GET `/api/history`** - Get full detection history (last 100 records)
-- **GET `/api/performance`** - Get model performance metrics (accuracy, precision, recall, f1_score)
-- **GET `/health`** - Health check endpoint
+</div>
 
-### Model Retraining Endpoints
-- **POST `/api/upload-and-retrain`** - Upload CSV file(s) and retrain the model with new data
-  - Required CSV format: Must contain a `Label` column with attack type labels
-  - Supported labels: BENIGN, DDoS, PortScan, Bot, Infiltration, Web Attack, FTP-Patator, SSH-Patator, DoS variants, etc.
-  - Response includes: new_labels_count, label_distribution, and updated performance metrics
-  - Note: Retraining may take several minutes for large datasets
+## 🚀 Quick Start
 
-## Frontend Features
-
-The React frontend provides a user-friendly interface for:
-
-1. **Traffic Analysis**: Submit network traffic features for DDoS detection
-2. **Editable Features**: Click on any feature value to edit it directly
-3. **Random Data Generation**: Generate random data to test the model
-4. **Attack Simulation**: Generate simulated DDoS attack data patterns
-5. **Model Retraining**: Upload new CSV files with attack data to retrain the model
-6. **Threat Visualization**: View detected threats in real-time with severity levels
-7. **Performance Monitoring**: Monitor model performance metrics through charts
-8. **Detection History**: Persistent storage of all detection results
-
-## Model Retraining Guide
-
-### Using the Python Script
-
-The easiest way to retrain with new data is to use the provided retraining script:
+### Prerequisites
 
 ```bash
-# Activate your virtual environment first
-python examples/retrain_with_new_data.py ./data/new_attack_data.csv
+# Required software
+Python 3.8+
+Node.js 16.x+
+npm 8.x+
+Git
 ```
 
-**Requirements for the CSV file:**
-- Must contain a `Label` column (with or without leading/trailing spaces)
-- Labels can be any attack type (e.g., DDoS, PortScan, Bot, Infiltration, etc.)
-- Other columns are treated as features and must match the model's expected feature count
-- Null/Inf values are automatically cleaned
+### ⚙️ Installation & Setup
+
+#### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/SCC252.git
+cd SCC252
+```
+
+#### 2️⃣ Backend Setup (Python/Flask)
+
+<details>
+<summary><b>Step-by-step Backend Configuration</b></summary>
+
+##### Create Virtual Environment
+
+**On macOS/Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**On Windows:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+##### Install Python Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+<details>
+<summary>View key dependencies</summary>
+
+- `Flask` - Web framework
+- `Flask-CORS` - Cross-origin support
+- `scikit-learn` - Machine learning
+- `pandas` - Data manipulation
+- `numpy` - Numerical computing
+- `joblib` - Model serialization
+
+</details>
+
+</details>
+
+#### 3️⃣ Prepare Training Data
+
+##### Download Dataset
+
+> **Dataset**: CICIDS2017 (Wednesday Working Hours Traffic)  
+> **Source**: [Canadian Institute for Cybersecurity](https://www.unb.ca/cic/datasets/ids-2017.html)  
+> **Required File**: `Wednesday-workingHours.pcap_ISCX.csv`
+
+##### Place Dataset
+
+```bash
+mkdir -p data
+# Place Wednesday-workingHours.pcap_ISCX.csv in the data/ directory
+```
+
+**Expected file structure:**
+```
+SCC252/
+├── data/
+│   └── Wednesday-workingHours.pcap_ISCX.csv
+```
+
+#### 4️⃣ Train the Model
+
+```bash
+python trainning.py
+```
+
+<details>
+<summary>Expected output</summary>
+```
+正在读取数据...
+数据读取成功，原始形状: (692703, 79)
+正在清理数据...
+清理后形状: (692703, 79)
+正在进行多分类标签编码...
+...
+测试集整体准确率: 0.9993
+测试集整体精确度: 0.9993
+测试集[BENIGN]召回率: 0.9993
+测试集假阳性率: 0.0005
+测试集AUC: 0.9999
+🎉 任务完成！
+```
+
+**Generated files in `models/` directory:**
+- `ddos_rf_model.joblib` - Trained Random Forest model
+- `ddos_scaler.joblib` - StandardScaler for feature normalization
+- `ddos_label_encoder.joblib` - Label encoder for attack types
+- `ddos_feature_columns.joblib` - List of feature column names
+- `ddos_performance.json` - Performance metrics
+
+</details>
+
+#### 5️⃣ Start Backend Server
+
+```bash
+python app.py
+```
 
 **Expected output:**
 ```
-✅ 重训练成功！
-📊 数据统计:
-  • 总样本数: 500000
-  • 唯一标签数: 5
-  • 新增标签数: 1
-  • 新增标签: NewAttackType
-
-📈 模型性能指标:
-  • 准确率 (Accuracy): 0.9994
-  • 精确度 (Precision): 0.9994
-  • 召回率 (Recall): 0.9994
-  • F1-Score: 0.9994
+INFO:werkzeug:WARNING: This is a development server.
+ * Running on http://127.0.0.1:5050
+INFO:app:✅ Model components loaded successfully.
+INFO:app:✅ Performance metrics loaded.
 ```
 
-### Using the Frontend
+**Verify backend is running:**
+```bash
+curl http://127.0.0.1:5050/health
+# Expected: {"status":"healthy","model_loaded":true}
+```
 
-1. Click "Choose Files" in the Model Retraining section
-2. Select one or more CSV files with attack data
-3. Click "Upload and Retrain Model"
-4. Wait for retraining to complete (check the console for progress)
-5. New attack types will be automatically detected and added to the model
-6. Model performance metrics will be updated and displayed
+#### 6️⃣ Frontend Setup (Vue.js)
 
-### Using the REST API
+##### Navigate to Frontend Directory
 
 ```bash
-curl -F "files=@./data/attack_data.csv" http://127.0.0.1:5000/api/upload-and-retrain
+cd template
 ```
 
-Response:
-```json
+##### Install Node Dependencies
+
+```bash
+npm install
+```
+
+##### Start Development Server
+
+```bash
+npm run dev
+```
+
+**Expected output:**
+```
+VITE v6.2.0  ready in 500 ms
+
+➜  Local:   http://localhost:5173/
+➜  Network: use --host to expose
+```
+
+#### 7️⃣ Access the Application
+
+🌐 **Frontend**: Open browser and navigate to `http://localhost:5173`  
+🔌 **Backend API**: `http://127.0.0.1:5050`
+
+**Dashboard Features:**
+- 📊 Performance metrics visualization
+- 🔴 Real-time detection interface
+- 📜 Alert history panel
+- 🎯 Model statistics radar chart
+
+#### 8️⃣ Verify Setup
+
+##### Test Prediction Endpoint
+
+```bash
+curl -X POST http://127.0.0.1:5050/api/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": [54865,3,2,0,12,0,6,6,6.0,0.0,0,0,0.0,0.0,4000000.0,666666.6667,3.0,0.0,3,3,3,3.0,0.0,3,3,0,0.0,0.0,0,0,0,0,0,0,40,0,666666.6667,0.0,6,6,6.0,0.0,0.0,0,0,0,0,1,0,0,0,0,9.0,6.0,0.0,40,0,0,0,0,0,0,2,12,0,0,33,-1,1,20,0.0,0.0,0,0,0.0,0.0,0,0]}'
+```
+
+##### Run Example Script
+
+```bash
+cd examples
+python run_sample.py
+```
+
+**Expected output:**
+```
+--- 模拟网站/API 接口返回结果 ---
 {
-  "status": "success",
-  "message": "Retraining complete. Accuracy: 0.9994",
-  "stats": {
-    "total_samples": 500000,
-    "unique_labels": ["BENIGN", "DDoS", "PortScan", "Bot", "NewAttackType"],
-    "new_labels": ["NewAttackType"],
-    "new_labels_count": 1,
-    "label_distribution": {...}
-  },
-  "performance": {
-    "accuracy": 0.9994,
-    "precision": 0.9994,
-    "recall": 0.9994,
-    "f1_score": 0.9994
-  }
+    "status": "success",
+    "predicted_label": "BENIGN",
+    "confidence": 0.98,
+    "threat_level": "None",
+    ...
 }
 ```
 
-## Dataset
+---
 
-The system is trained on the CICIDS2017 dataset, which includes the following attack types:
+## 📖 Usage Guide
 
-- **BENIGN**: Normal traffic
-- **DDoS**: Distributed Denial of Service
-- **PortScan**: Port scanning attacks
-- **Bot**: Botnet activity
-- **Infiltration**: Network penetration
-- **Web Attack**: SQL Injection, XSS, Brute Force
-- **FTP-Patator**: FTP password brute force
-- **SSH-Patator**: SSH password brute force
-- **DoS Variants**: Hulk, slowloris, Slowhttptest, GoldenEye
-- **Heartbleed**: Heartbleed vulnerability exploit
+### 🧪 Running Sample Detection
 
-You can retrain the model with additional or custom attack types by providing CSV files in the same format.
+```bash
+cd examples
+python run_sample.py
+```
 
-## Editing Data
+### 🔮 Making Predictions via API
 
-To edit feature values in the frontend:
-1. Click on any feature value in the "Raw Feature Vector" display
-2. Modify the value in the input field that appears
-3. Press Enter to save or click the checkmark button
-4. Press Escape or click the X button to cancel
+```python
+import requests
 
-## Generating Test Data
+# Prepare feature data (78 features required)
+features = [54865, 3, 2, 0, 12, ...] # 78 values
 
-### Random Data
-To generate random data for testing:
-1. Click the "🎲 Random Data" button in the Traffic Analyzer section
-2. The system will generate random values for all features
-3. Click "Analyze Traffic Pattern" to test the model with this data
+# Send prediction request
+response = requests.post(
+    'http://127.0.0.1:5050/api/predict',
+    json={'features': features}
+)
 
-### Simulated Attack Data
-To generate simulated DDoS attack data:
-1. Click the "⚔️ Simulate Attack" button in the Traffic Analyzer section
-2. The system will generate data patterns typical of DDoS attacks
-3. Click "Analyze Traffic Pattern" to test the model with this attack data
+result = response.json()
+print(f"Prediction: {result['predicted_label']}")
+print(f"Confidence: {result['confidence']}")
+print(f"Threat Level: {result['threat_level']}")
+```
 
-## Threat Intelligence Panel
+### 🔄 Retraining the Model
 
-The right panel shows threat intelligence information with two tabs:
+```bash
+# Upload new CSV data via web interface
+# Or use API:
+curl -X POST http://127.0.0.1:5050/api/upload-and-retrain \
+  -F "files=@new_data.csv"
+```
 
-1. **Recent Alerts**: Shows live alerts for malicious traffic detections (refreshes every 5 seconds)
-2. **Detection History**: Shows persistent history of all detections (both benign and malicious)
+### 📈 Viewing Detection History
 
-Each entry displays:
-- Timestamp of detection
-- Type of traffic (BENIGN or specific attack type)
-- Confidence score of the detection
-- Threat level (None, Low, Medium, High)
-- Threat level (None, Low, Medium, High)
+Access the frontend dashboard at `http://localhost:5173` to view:
+- Real-time attack detection
+- Historical alerts
+- Model performance metrics
+- Attack frequency analysis
 
-## Uploading CSV Files for Retraining
+---
 
-To retrain the model with your own data:
+## 🔌 API Documentation
 
-1. Click the "Choose Files" button in the Model Retraining section
-2. Select one or more CSV files (they must have the same format as the original dataset)
-3. Click "Upload and Retrain Model"
-4. Wait for the process to complete (you'll receive a notification)
-5. The model will be automatically updated and ready for new predictions
+### 📡 Endpoints Overview
 
-## Model Components
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| POST | `/api/predict` | Classify network traffic |
+| GET | `/api/alerts` | Get recent alerts |
+| GET | `/api/history` | Get detection history |
+| GET | `/api/performance` | Get model metrics |
+| GET | `/api/stream` | Get attack stream samples |
+| GET | `/api/random` | Generate random test data |
+| POST | `/api/upload-and-retrain` | Retrain model with new data |
 
-The trained model consists of four serialized components:
-1. `ddos_rf_model.joblib` - Random Forest classifier
-2. `ddos_scaler.joblib` - Feature scaler
-3. `ddos_label_encoder.joblib` - Label encoder
-4. `ddos_feature_columns.joblib` - Feature column names
+### 📝 Detailed API Reference
 
-These components are automatically loaded when the Flask server starts.
+#### `POST /api/predict`
+
+Classify network traffic features.
+
+**Request:**
+```json
+{
+  "features": [78 numerical values]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "predicted_label": "DoS Hulk",
+  "confidence": 0.95,
+  "threat_level": "High",
+  "probabilities": {
+    "DoS Hulk": 0.95,
+    "BENIGN": 0.03,
+    "DoS Slowloris": 0.02
+  },
+  "timestamp": "2025-12-14 10:30:45"
+}
+```
+
+#### `GET /api/performance`
+
+Get current model performance metrics.
+
+**Response:**
+```json
+{
+  "accuracy": 0.9993,
+  "precision": 0.9993,
+  "recall": 0.9993,
+  "FPR": 0.0005,
+  "auc": 0.9999
+}
+```
+
+---
+
+## 🏗️ Architecture
+
+### System Architecture
+
+```mermaid
+graph LR
+    A[Client Browser] --> B[Vue.js Frontend]
+    B --> C[Vite Dev Server]
+    C --> D[Flask Backend]
+    D --> E[ML Model]
+    D --> F[SQLite DB]
+    E --> G[Random Forest]
+    E --> H[StandardScaler]
+    E --> I[Label Encoder]
+```
+
+### Technology Stack
+
+**Backend**
+- Python 3.8+
+- Flask (REST API)
+- scikit-learn (ML)
+- pandas & numpy (Data processing)
+
+**Frontend**
+- Vue.js 3.x
+- TypeScript
+- Vite (Build tool)
+- Chart.js (Visualizations)
+
+**ML Pipeline**
+- Random Forest Classifier
+- StandardScaler normalization
+- Multi-class classification
+- CICIDS2017 dataset
+
+## 📁 Project Structure
+
+```
+SCC252/
+├── app.py                          # Flask backend server
+├── trainning.py                    # Model training script
+├── requirements.txt                # Python dependencies
+├── README.md                       # This file
+├── data/                           # Training datasets
+│   └── Wednesday-workingHours.pcap_ISCX.csv
+├── models/                         # Trained model files
+│   ├── ddos_rf_model.joblib
+│   ├── ddos_scaler.joblib
+│   ├── ddos_label_encoder.joblib
+│   ├── ddos_feature_columns.joblib
+│   └── ddos_performance.json
+├── examples/                       # Usage examples
+│   ├── run_sample.py
+│   └── retrain_with_new_data.py
+├── template/                       # Vue.js frontend
+│   ├── components/
+│   │   ├── RadarChart.vue
+│   │   └── StatCard.vue
+│   ├── services/
+│   │   └── api.ts
+│   ├── App.vue
+│   ├── main.ts
+│   ├── package.json
+│   └── vite.config.ts
+└── ddos_detection.db              # SQLite database
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Dataset**: [CICIDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) by Canadian Institute for Cybersecurity
+- **ML Framework**: [scikit-learn](https://scikit-learn.org/)
+- **Frontend Framework**: [Vue.js](https://vuejs.org/)
+
+## 📧 Contact
+
+For questions or feedback, please open an issue on GitHub.
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if you find it helpful!**
+
+Made with ❤️ for cybersecurity
+
+</div>

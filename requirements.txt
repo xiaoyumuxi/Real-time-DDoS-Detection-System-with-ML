@@ -1,6 +1,34 @@
-flask
+# Web Framework & Core
+Flask
 flask-cors
-pandas
+click
+itsdangerous
+Jinja2
+MarkupSafe
+Werkzeug
+blinker
+
+# Data Science & Math (最容易出问题的部分)
 numpy
+pandas
 scikit-learn
+scipy
 joblib
+threadpoolctl
+
+# Network & HTTP
+requests
+urllib3
+certifi
+idna
+charset-normalizer
+
+# Utilities & Time
+python-dateutil
+pytz
+tzdata
+six
+
+# Testing
+pytest
+pytest-cov

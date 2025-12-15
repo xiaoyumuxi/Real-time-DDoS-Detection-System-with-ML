@@ -1,5 +1,5 @@
 {
-  "name": "ddos-detection-system",
+  "name": "cyberdefense-ids-shield",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,13 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^19.2.1",
-    "recharts": "^3.5.1",
-    "react": "^19.2.1"
+    "chart.js": "^4.5.1",
+    "vue": "^3.5.25"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-vue": "^6.0.3",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
