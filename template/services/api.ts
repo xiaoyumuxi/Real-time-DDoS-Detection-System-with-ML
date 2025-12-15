@@ -38,7 +38,6 @@ export const api = {
   },
 
   async getTrafficData(type: 'normal' | 'attack' | 'random'): Promise<TrafficData | AttackStreamResponse> {
-    // normal/random 你原本怎么取就怎么取；这里保持 /api/random
     const url = type === 'attack' ? '/api/stream' : '/api/random';
     const res = await fetchWithTimeout(url, { method: 'GET' });
     if (!res.ok) throw new Error('Failed to get traffic data');
@@ -57,9 +56,16 @@ export const api = {
 
   async retrain(file: File): Promise<{ message: string }> {
     const formData = new FormData();
-    formData.append('file', file);
 
-    const res = await fetchWithTimeout('/api/upload-and-retrain', { method: 'POST', body: formData }, RETRAIN_TIMEOUT_MS);
+    // ✅ 关键修复：后端用 request.files.getlist('files')
+    formData.append('files', file);
+
+    const res = await fetchWithTimeout(
+      '/api/upload-and-retrain',
+      { method: 'POST', body: formData },
+      RETRAIN_TIMEOUT_MS
+    );
+
     if (!res.ok) throw new Error('Retraining failed');
     return res.json();
   }

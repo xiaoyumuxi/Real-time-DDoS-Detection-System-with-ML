@@ -304,7 +304,7 @@ def build_attack_sample_library():
 def train_model_with_data(df, target_column='Label'):
     """
     使用上传的数据重新训练模型。
-    
+
     返回值:
         字典 {'success': True/False, 'message': str, 'stats': dict}
         stats 包含: total_samples, label_distribution, new_labels_count
@@ -352,7 +352,9 @@ def train_model_with_data(df, target_column='Label'):
         feature_columns_list = X.columns.tolist()
 
         # 4. 划分数据集
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
 
         # 5. 标准化
         scaler = StandardScaler()
@@ -370,30 +372,48 @@ def train_model_with_data(df, target_column='Label'):
         # 7. 评估
         y_pred = rf_model.predict(X_test_scaled)
 
-        # 1. 获取模型对测试集的概率输出 (AUC 必需)
-        y_scores = rf_model.predict_proba(X_test)
+        # ====== AUC 计算（修复二分类越界问题）======
+        # 1) 获取模型对测试集的概率输出 (AUC 必需)
+        #    ✅ 必须和训练一致：用 X_test_scaled，而不是 X_test
+        y_scores = rf_model.predict_proba(X_test_scaled)
 
-        # 2. 对真实标签进行二值化 (One-Hot 编码) 以适应 OvR 策略
+        # 2) 类别
         classes = np.unique(y_test)
-        y_test_binarized = label_binarize(y_test, classes=classes)
+        n_classes = len(classes)
 
-        # 3. 获取每个类别的支持度 (样本数), 用于计算加权平均
-        support = y_test.value_counts().sort_index().values
-        total_support = np.sum(support)
+        # 3) 计算 AUC（保持你“加权 AUC”的思想）
+        if n_classes == 2:
+            # 二分类：label_binarize 只返回 (n,1)，不能 [:, i] 循环
+            y_bin = label_binarize(y_test, classes=classes).ravel()  # (n,)
 
-        roc_auc = dict()
-        weighted_auc_sum = 0
+            # predict_proba 二分类一般是 (n,2)，取正类(classes[1])那列
+            if y_scores.ndim == 2 and y_scores.shape[1] >= 2:
+                score_pos = y_scores[:, 1]
+            else:
+                score_pos = np.asarray(y_scores).ravel()
 
-        for i in range(len(classes)):
-            # OvR 策略：计算每个类别的 AUC
-            fpr, tpr, _ = roc_curve(y_test_binarized[:, i], y_scores[:, i])
-            roc_auc[i] = auc(fpr, tpr)
+            fpr, tpr, _ = roc_curve(y_bin, score_pos)
+            auc_weighted = float(auc(fpr, tpr))
 
-            # 计算加权和
-            weight = support[i] / total_support
-            weighted_auc_sum += roc_auc[i] * weight
+        else:
+            # 多分类：OvR，每类算 AUC，再按支持度加权平均
+            y_test_binarized = label_binarize(y_test, classes=classes)  # (n, n_classes)
 
-        auc_weighted = weighted_auc_sum
+            support = y_test.value_counts().sort_index().values
+            total_support = np.sum(support)
+
+            roc_auc = dict()
+            weighted_auc_sum = 0.0
+
+            for i in range(n_classes):
+                fpr, tpr, _ = roc_curve(y_test_binarized[:, i], y_scores[:, i])
+                roc_auc[i] = auc(fpr, tpr)
+
+                weight = support[i] / total_support
+                weighted_auc_sum += roc_auc[i] * weight
+
+            auc_weighted = float(weighted_auc_sum)
+        # ====== AUC 计算结束 ======
 
         PERFORMANCE_METRICS = {
             "accuracy": accuracy_score(y_test, y_pred),
@@ -411,19 +431,23 @@ def train_model_with_data(df, target_column='Label'):
         joblib.dump(feature_columns_list, FEATURE_COLS_PATH)
 
         logger.info(f"Retraining complete. Accuracy: {PERFORMANCE_METRICS['accuracy']:.4f}")
+
         # 保存性能指标
         with open(PERFORMANCE_PATH, 'w') as f:
             json.dump(PERFORMANCE_METRICS, f)
         logger.info(f"Performance metrics saved to {PERFORMANCE_PATH}")
 
-        return {'success': True, 'message': f'Retraining complete. Accuracy: {PERFORMANCE_METRICS["accuracy"]:.4f}', 'stats': stats}
+        return {
+            'success': True,
+            'message': f'Retraining complete. Accuracy: {PERFORMANCE_METRICS["accuracy"]:.4f}',
+            'stats': stats
+        }
 
     except Exception as e:
         logger.error(f"Train model with data failed: {e}")
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': str(e), 'stats': {}}
-
 
 # ----------------------------------------------------------------------
 # 5. API 路由接口
