@@ -366,9 +366,20 @@ def train_model_with_data(df, target_column='Label'):
         else:
             feature_columns_list = X.columns.tolist()
 
-        # 4. Train-test split
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+        # 4 Split dataset (avoid duplicate rows leaking across train/test)
+        from sklearn.model_selection import GroupShuffleSplit
+
+        # Build a group id per row; identical feature rows share the same group id
+        groups = pd.util.hash_pandas_object(X, index=False).astype("int64")
+
+        gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        train_idx, test_idx = next(gss.split(X, y, groups=groups))
+
+        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
+        logger.info(
+            f"Split done: train={len(X_train)}, test={len(X_test)}, classes={np.unique(y_test, return_counts=True)}"
         )
 
         # 5. Standardization
@@ -715,7 +726,7 @@ def count_to_level(c: int) -> str:
 def get_attack_stream_sample():
 
     try:
-        # 1) Load anomaly traffic CSV (cached)
+        # 1) Load anomaly traffic CS (cached)
         _load_anomaly_traffic()
 
         df = ANOMALY_TRAFFIC_DF
