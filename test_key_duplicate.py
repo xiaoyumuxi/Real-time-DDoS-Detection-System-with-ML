@@ -1,12 +1,3 @@
-"""
-Unit test file: test all API functions, including duplicate-key scenarios.
-
-Coverage:
-1. Normal behavior for all API endpoints
-2. Duplicate keys in JSON requests
-3. Edge cases and error handling
-4. Data validation and exception handling
-"""
 
 import pytest
 import json

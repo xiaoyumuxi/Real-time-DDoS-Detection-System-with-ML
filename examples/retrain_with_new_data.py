@@ -1,22 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-重训练示例脚本
-
-此脚本演示如何：
-1. 从本地磁盘读取 CSV 文件
-2. 上传到 Flask 后端的 /api/upload-and-retrain 端点
-3. 触发模型重训练
-4. 获取新的模型性能指标和统计信息
-
-使用方法:
-    python examples/retrain_with_new_data.py <csv_file_path> [--host HOST] [--port PORT]
-
-示例:
-    python examples/retrain_with_new_data.py ./data/Wednesday-workingHours.pcap_ISCX.csv
-    python examples/retrain_with_new_data.py ./data/custom_attack_data.csv --host 127.0.0.1 --port 5000
-"""
-
 import requests
 import argparse
 import sys
@@ -24,17 +5,6 @@ from pathlib import Path
 
 
 def retrain_model(csv_file, host='127.0.0.1', port=5000):
-    """
-    向后端发送 CSV 文件并触发重训练
-    
-    参数:
-        csv_file (str): CSV 文件的本地路径
-        host (str): Flask 服务器主机
-        port (int): Flask 服务器端口
-    
-    返回:
-        dict: 响应数据
-    """
     csv_path = Path(csv_file)
     
     # 验证文件是否存在

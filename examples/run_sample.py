@@ -1,8 +1,6 @@
 import json
 import sys
 from pathlib import Path
-# Ensure project root is on sys.path so we can import `app` when running this
-# script from the `examples/` folder directly.
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
